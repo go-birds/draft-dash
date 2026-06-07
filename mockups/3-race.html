@@ -1,0 +1,116 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="shared.css"></head>
+<body><div class="device"><div class="screen">
+  <div class="statusbar"><span>9:41</span><span class="dots">●●● ▰▰▰ 🔋</span></div>
+  <div class="body">
+    <!-- horizontal field: vertical mowed stripes -->
+    <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,var(--turf) 0 40px,var(--turf-dk) 40px 80px)"></div>
+    <!-- yard lines (vertical) -->
+    <div id="yards"></div>
+    <!-- lane separators -->
+    <div id="lanes"></div>
+    <!-- end zone on the right -->
+    <div style="position:absolute;top:0;bottom:0;right:0;width:72px;background:repeating-linear-gradient(0deg,var(--endzone) 0 10px,var(--endzone-2) 10px 20px);border-left:5px solid var(--turf-line)">
+      <div class="display" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg);white-space:nowrap;font-size:30px;color:#fff;letter-spacing:8px;opacity:.85">END ZONE</div>
+    </div>
+    <!-- lighting -->
+    <div style="position:absolute;inset:0;background:radial-gradient(70% 50% at 70% 40%,rgba(255,255,255,.14),transparent 60%),radial-gradient(120% 60% at 50% 120%,rgba(0,0,0,.45),transparent 60%)"></div>
+
+    <!-- runners get injected here -->
+    <div id="runners"></div>
+
+    <!-- top scoreboard -->
+    <div class="scorebar" style="position:absolute;top:14px;left:18px;right:18px;height:64px;display:flex;align-items:center;padding:0 16px;gap:12px;z-index:30">
+      <span class="led-dot"></span><span class="cond" style="font-size:14px;letter-spacing:2px">LIVE</span>
+      <div style="flex:1;text-align:center"><div class="cond muted" style="font-size:11px;letter-spacing:2px">LEADER</div>
+        <div class="display" style="font-size:22px;color:var(--gold)">DANA · #07</div></div>
+      <div style="text-align:right"><div class="display" style="font-size:26px">0:04</div><div class="cond muted" style="font-size:10px">CLOCK</div></div>
+    </div>
+
+    <!-- bottom running order -->
+    <div class="scorebar" style="position:absolute;bottom:24px;left:18px;right:18px;padding:12px 14px;z-index:30">
+      <div class="cond muted" style="font-size:11px;letter-spacing:2px;margin-bottom:8px">RUNNING ORDER</div>
+      <div style="display:flex;gap:8px;overflow:hidden">
+        <span class="pill" style="border-color:var(--gold);color:var(--gold)">1 · Dana</span>
+        <span class="pill">2 · Marcus</span>
+        <span class="pill">3 · Coleman</span>
+        <span class="pill">4 · Priya</span>
+        <span class="pill" style="opacity:.5">5 · …</span>
+      </div>
+    </div>
+  </div>
+  <div class="home-ind"></div>
+</div></div>
+
+<script>
+// ---- field markings ----
+const FW=430, fTop=96, fBot=828, fieldH=fBot-fTop;
+let yards='';
+for(let i=1;i<=4;i++){const x=i*72; yards+=`<div style="position:absolute;top:${fTop}px;height:${fieldH}px;left:${x}px;width:3px;background:var(--turf-line);opacity:.6"></div>`;
+  yards+=`<div class="display" style="position:absolute;left:${x-14}px;top:${fTop+6}px;font-size:22px;color:rgba(255,255,255,.45)">${[40,30,20,10][i-1]}</div>`;}
+document.getElementById('yards').innerHTML=yards;
+let lanes='';
+for(let i=1;i<6;i++){const y=fTop+i*(fieldH/6);lanes+=`<div style="position:absolute;left:0;right:72px;top:${y}px;height:2px;background:rgba(255,255,255,.10)"></div>`;}
+document.getElementById('lanes').innerHTML=lanes;
+
+// ---- player sprite (side view, running right) ----
+function player(j, num, skin, numColor, leader){
+  const glow = leader ? `filter:drop-shadow(0 0 8px var(--gold)) drop-shadow(0 6px 6px rgba(0,0,0,.5));` : `filter:drop-shadow(0 7px 6px rgba(0,0,0,.45));`;
+  return `<svg viewBox="0 0 130 150" style="width:100%;height:100%;${glow}">
+    <ellipse cx="60" cy="146" rx="33" ry="6" fill="rgba(0,0,0,.30)"/>
+    <!-- back leg -->
+    <path d="M55 92 L36 114 L45 138" fill="none" stroke="#e7edf5" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M45 138 l-16 3" stroke="#15171c" stroke-width="10" stroke-linecap="round"/>
+    <!-- front leg -->
+    <path d="M66 92 L88 102 L82 130" fill="none" stroke="#f6f9fc" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M82 130 l20 4" stroke="#0e0f12" stroke-width="11" stroke-linecap="round"/>
+    <!-- sock stripe -->
+    <path d="M84 120 l-4 0" stroke="${j}" stroke-width="15"/>
+    <!-- back arm -->
+    <path d="M55 60 L33 50" stroke="${j}" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="31" cy="49" r="6.5" fill="${skin}"/>
+    <!-- torso / jersey -->
+    <path d="M45 52 Q60 44 78 52 L84 92 Q60 102 41 92 Z" fill="${j}"/>
+    <path d="M45 52 Q60 44 78 52 L80 68 Q60 76 43 68 Z" fill="rgba(255,255,255,.14)"/>
+    <text x="61" y="86" text-anchor="middle" font-family="Impact,sans-serif" font-size="28" fill="${numColor}">${num}</text>
+    <!-- front arm cradling ball -->
+    <path d="M76 58 L98 66" stroke="${j}" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="100" cy="68" r="6.5" fill="${skin}"/>
+    <!-- football -->
+    <g transform="rotate(26 108 74)"><ellipse cx="108" cy="74" rx="14" ry="8.5" fill="#834f25" stroke="#5d3417" stroke-width="2"/>
+      <path d="M100 74 h16" stroke="#f5ead6" stroke-width="2"/><path d="M104 70.5 v7 M108 70.5 v7 M112 70.5 v7" stroke="#f5ead6" stroke-width="1.4"/></g>
+    <!-- neck -->
+    <rect x="56" y="38" width="12" height="15" rx="5" fill="${skin}"/>
+    <!-- helmet (facing right) -->
+    <path d="M50 24 q15 -11 30 1 q9 8 4 20 q-3 8 -13 9 l-12 0 q-13 -1 -15 -16 q-1 -9 6 -14 Z" fill="${j}"/>
+    <path d="M53 20 q12 -6 22 3" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="3.5"/>
+    <!-- earhole -->
+    <circle cx="64" cy="38" r="3.5" fill="rgba(0,0,0,.25)"/>
+    <!-- facemask -->
+    <path d="M80 30 q10 4 8 16 M78 34 q8 3 7 12" fill="none" stroke="#e2e7ee" stroke-width="2.4"/>
+  </svg>`;
+}
+
+const FIN=72; // end-zone width
+const goalX = FW - FIN - 12;
+function lane(i){return fTop + (i+0.5)*(fieldH/6);}
+// {jersey, num, skin, numColor, x(progress 0..1), lane}
+const P=[
+ {j:'#3A86FF',num:'07',skin:'#e7b58a',nc:'#fff',x:.98,lane:0,leader:true},  // Dana leader
+ {j:'#FFB703',num:'23',skin:'#7a4a24',nc:'#241500',x:.74,lane:2},           // Marcus
+ {j:'#E63946',num:'12',skin:'#c98a52',nc:'#fff',x:.62,lane:1},              // Coleman
+ {j:'#06D6A0',num:'05',skin:'#f1c27d',nc:'#06301f',x:.55,lane:3},           // Priya
+ {j:'#9b5de5',num:'88',skin:'#8d5524',nc:'#fff',x:.40,lane:4},              // Sam
+ {j:'#fb5607',num:'44',skin:'#e0a878',nc:'#fff',x:.34,lane:5},              // Riley
+];
+const SW=92, SH=108;
+let html='';
+for(const p of P){
+  const px = 8 + p.x*(goalX-8) - SW*0.6;
+  const py = lane(p.lane) - SH*0.62;
+  // speed lines behind leader
+  const lines = p.leader ? `<div style="position:absolute;left:${px-46}px;top:${py+44}px;width:50px;height:34px;background:repeating-linear-gradient(0deg,rgba(255,255,255,.5) 0 2px,transparent 2px 9px);mask:linear-gradient(90deg,transparent,#000);-webkit-mask:linear-gradient(90deg,transparent,#000)"></div>`:'';
+  html += lines + `<div style="position:absolute;left:${px}px;top:${py}px;width:${SW}px;height:${SH}px;z-index:20">${player(p.j,p.num,p.skin,p.nc,p.leader)}</div>`;
+}
+document.getElementById('runners').innerHTML=html;
+</script>
+</body></html>

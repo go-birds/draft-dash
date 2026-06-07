@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="shared.css"></head>
+<body><div class="device"><div class="screen">
+  <div class="statusbar"><span>9:41</span><span class="dots">●●● ▰▰▰ 🔋</span></div>
+  <div class="body">
+    <!-- sky + stadium lights -->
+    <div style="position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%,#13315c 0%,#0a1622 45%,#05070a 100%)"></div>
+    <!-- light banks -->
+    <div style="position:absolute;top:38px;left:34px;width:120px;height:34px;border-radius:6px;background:linear-gradient(#27384f,#16222f);box-shadow:0 0 40px 6px rgba(180,210,255,.35);display:flex;gap:5px;padding:5px;align-items:center;justify-content:center">
+      <span style="width:10px;height:10px;border-radius:50%;background:#dfeeff;box-shadow:0 0 10px #cfe4ff"></span><span style="width:10px;height:10px;border-radius:50%;background:#dfeeff;box-shadow:0 0 10px #cfe4ff"></span><span style="width:10px;height:10px;border-radius:50%;background:#dfeeff;box-shadow:0 0 10px #cfe4ff"></span><span style="width:10px;height:10px;border-radius:50%;background:#dfeeff;box-shadow:0 0 10px #cfe4ff"></span>
+    </div>
+    <div style="position:absolute;top:38px;right:34px;width:120px;height:34px;border-radius:6px;background:linear-gradient(#27384f,#16222f);box-shadow:0 0 40px 6px rgba(180,210,255,.35);display:flex;gap:5px;padding:5px;align-items:center;justify-content:center">
+      <span style="width:10px;height:10px;border-radius:50%;background:#dfeeff;box-shadow:0 0 10px #cfe4ff"></span><span style="width:10px;height:10px;border-radius:50%;background:#dfeeff;box-shadow:0 0 10px #cfe4ff"></span><span style="width:10px;height:10px;border-radius:50%;background:#dfeeff;box-shadow:0 0 10px #cfe4ff"></span><span style="width:10px;height:10px;border-radius:50%;background:#dfeeff;box-shadow:0 0 10px #cfe4ff"></span>
+    </div>
+
+    <!-- turf strip at bottom with perspective lines -->
+    <div class="turf" style="top:auto;bottom:0;height:330px;transform:perspective(420px) rotateX(42deg);transform-origin:bottom">
+      <div class="yardline" style="left:18%"></div><div class="yardline" style="left:38%"></div>
+      <div class="yardline" style="left:50%;width:5px"></div>
+      <div class="yardline" style="left:62%"></div><div class="yardline" style="left:82%"></div>
+    </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:330px;background:linear-gradient(180deg,transparent,rgba(5,7,10,.85))"></div>
+
+    <!-- title block -->
+    <div style="position:absolute;top:150px;left:0;right:0;text-align:center">
+      <div class="cond" style="color:var(--gold);font-size:16px;letter-spacing:5px">FANTASY FOOTBALL</div>
+      <div class="display" style="font-size:78px;line-height:.84;margin-top:6px;text-shadow:0 6px 0 rgba(0,0,0,.4),0 0 40px rgba(245,165,36,.25)">DRAFT<br><span style="color:var(--gold)">RACE</span></div>
+      <div class="cond" style="margin-top:14px;color:var(--tx-mute);font-size:15px;letter-spacing:3px">⬤ LIVE &nbsp; SETTLE IT ON THE FIELD</div>
+    </div>
+
+    <!-- running back silhouette -->
+    <div style="position:absolute;bottom:150px;left:50%;transform:translateX(-50%);font-size:96px;filter:drop-shadow(0 12px 14px rgba(0,0,0,.6))">🏈</div>
+
+    <!-- action card -->
+    <div style="position:absolute;left:22px;right:22px;bottom:30px">
+      <button class="btn btn-primary display"><span>▶</span> NEW DRAFT</button>
+      <button class="btn btn-ghost cond" style="margin-top:12px;height:54px;font-size:17px;justify-content:space-between;padding:0 20px">
+        <span>↺ CONTINUE · THE LEAGUE '26</span><span class="muted" style="font-size:13px">10 mgrs ›</span>
+      </button>
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <button class="btn btn-ghost cond btn-sm" style="flex:1">🏆 HISTORY</button>
+        <button class="btn btn-ghost cond btn-sm" style="flex:1">⚙ SETTINGS</button>
+      </div>
+    </div>
+  </div>
+  <div class="home-ind"></div>
+</div></div></body></html>

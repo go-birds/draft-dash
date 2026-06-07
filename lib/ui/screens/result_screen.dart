@@ -1,0 +1,217 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../domain/draft/participant.dart';
+import '../state/providers.dart';
+import '../theme/app_tokens.dart';
+import '../widgets/buttons.dart';
+import '../widgets/jersey_chip.dart';
+
+class ResultScreen extends ConsumerWidget {
+  const ResultScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tk = context.tokens;
+    final result = ref.watch(draftControllerProvider);
+    final cfg = ref.watch(draftConfigProvider);
+
+    if (result == null || result.order.isEmpty) {
+      return Scaffold(
+        backgroundColor: tk.background,
+        body: Center(
+            child: Text('No draft yet', style: tk.body.copyWith(color: tk.textMuted))),
+      );
+    }
+
+    final byId = {for (final p in cfg.participants) p.id: p};
+    final ordered = [
+      for (final id in result.order)
+        if (byId[id] != null) byId[id]!
+    ];
+    final champ = ordered.first;
+
+    void reorder(int oldIndex, int newIndex) {
+      final ids = [...result.order];
+      if (newIndex > oldIndex) newIndex -= 1;
+      final item = ids.removeAt(oldIndex);
+      ids.insert(newIndex, item);
+      ref.read(draftControllerProvider.notifier).editOrder(ids);
+    }
+
+    return Scaffold(
+      backgroundColor: tk.background,
+      body: Column(
+        children: [
+          _ChampBanner(champ: champ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
+            child: Row(
+              children: [
+                Text('DRAFT BOARD', style: tk.displayLarge.copyWith(fontSize: 22)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: tk.gold),
+                  ),
+                  child: Text('✎ COMMISH EDIT',
+                      style: tk.label.copyWith(color: tk.gold, fontSize: 11)),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('DRAG ANY ROW TO OVERRIDE THE ORDER',
+                  style: tk.label.copyWith(fontSize: 10, color: tk.textMuted)),
+            ),
+          ),
+          Expanded(
+            child: ReorderableListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              itemCount: ordered.length,
+              onReorder: reorder,
+              proxyDecorator: (child, index, anim) =>
+                  Material(color: Colors.transparent, child: child),
+              itemBuilder: (_, i) => _PickRow(
+                key: ValueKey(ordered[i].id),
+                index: i,
+                p: ordered[i],
+              ),
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 140,
+                    child: GhostButton('↺ RUN AGAIN', onPressed: () {
+                      Navigator.of(context)
+                        ..pop()
+                        ..pop(); // back to setup
+                    }),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PrimaryButton('SAVE BOARD ✓', onPressed: () async {
+                      await ref.read(draftControllerProvider.notifier).saveToHistory();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Draft saved to history 🏆')));
+                      Navigator.of(context).popUntil((r) => r.isFirst);
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChampBanner extends StatelessWidget {
+  final Participant champ;
+  const _ChampBanner({required this.champ});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return SizedBox(
+      height: 226,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [tk.endZone, tk.endZoneDark],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                tileMode: TileMode.repeated,
+                stops: const [.5, .5],
+              ),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -1),
+                radius: 1.1,
+                colors: [Color(0x55F5A524), Colors.transparent],
+              ),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('🏆 FIRST OVERALL PICK',
+                    style: tk.label.copyWith(color: tk.gold, letterSpacing: 3)),
+                const SizedBox(height: 10),
+                JerseyChip(
+                    color: Color(champ.colorValue),
+                    number: champ.number,
+                    size: 66,
+                    highlight: true),
+                const SizedBox(height: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(champ.name.toUpperCase(),
+                      style: tk.displayLarge.copyWith(fontSize: 34)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PickRow extends StatelessWidget {
+  final int index;
+  final Participant p;
+  const _PickRow({super.key, required this.index, required this.p});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    final first = index == 0;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: tk.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: first ? tk.gold : tk.scoreboardLine),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 40,
+            child: Text('${index + 1}',
+                textAlign: TextAlign.center,
+                style: tk.displayLarge.copyWith(
+                    fontSize: 26, color: first ? tk.gold : tk.textMuted)),
+          ),
+          JerseyChip(color: Color(p.colorValue), number: p.number, size: 42),
+          const SizedBox(width: 14),
+          Expanded(child: Text(p.name, style: tk.title.copyWith(fontSize: 18))),
+          Icon(Icons.drag_handle, color: tk.textMuted),
+        ],
+      ),
+    );
+  }
+}

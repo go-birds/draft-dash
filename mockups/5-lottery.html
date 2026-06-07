@@ -1,0 +1,89 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="shared.css">
+<style>
+.pong{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 34% 28%,#ffffff 0%,#f4f5f7 42%,#dadde2 78%,#c2c5cc 100%);
+  box-shadow:inset -3px -5px 7px rgba(0,0,0,.20),inset 3px 3px 4px rgba(255,255,255,.95),0 4px 7px rgba(0,0,0,.4);}
+.pong .ring{display:flex;align-items:center;justify-content:center;border-radius:50%;
+  font-family:"Impact",sans-serif;background:#fff;}
+.pong .spec{position:absolute;top:14%;left:20%;width:26%;height:20%;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.95),transparent 70%);filter:blur(1px)}
+</style></head>
+<body><div class="device"><div class="screen">
+  <div class="statusbar"><span>9:41</span><span class="dots">●●● ▰▰▰ 🔋</span></div>
+  <div class="body" style="background:radial-gradient(120% 80% at 50% 0%,#1a2740,#070a0e 70%)">
+    <div style="text-align:center;padding:16px 0 2px">
+      <div class="cond" style="color:var(--gold);font-size:13px;letter-spacing:4px">DRAFT LOTTERY</div>
+      <div class="display" style="font-size:30px">THE DRAW</div>
+      <div class="cond muted" style="font-size:12px;letter-spacing:2px;margin-top:2px">WEIGHTED BY ODDS · PICK 3 ON THE CLOCK</div>
+    </div>
+
+    <!-- machine -->
+    <div style="position:relative;width:430px;height:430px;margin-top:6px">
+      <!-- extraction tube + tray (top) -->
+      <div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);width:46px;height:96px;border-radius:12px;
+        background:linear-gradient(90deg,rgba(180,210,255,.10),rgba(255,255,255,.22),rgba(180,210,255,.10));
+        border:2px solid rgba(190,215,255,.5);box-shadow:inset 0 0 12px rgba(255,255,255,.25);z-index:6"></div>
+      <!-- ball climbing the tube -->
+      <div class="pong" id="tubeball" style="width:40px;height:40px;top:24px;left:50%;transform:translateX(-50%);z-index:7"><div class="spec"></div><div class="ring" id="tr"></div></div>
+
+      <!-- glass sphere -->
+      <div style="position:absolute;top:96px;left:50%;transform:translateX(-50%);width:300px;height:300px;border-radius:50%;
+        background:radial-gradient(circle at 36% 28%,rgba(255,255,255,.28),rgba(150,190,235,.10) 40%,rgba(10,20,35,.55) 100%);
+        border:3px solid rgba(190,215,255,.35);
+        box-shadow:inset 0 14px 40px rgba(255,255,255,.25),inset 0 -30px 60px rgba(0,0,0,.6),0 24px 50px rgba(0,0,0,.55);overflow:hidden">
+        <!-- glass highlight -->
+        <div style="position:absolute;top:26px;left:44px;width:96px;height:60px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.6),transparent 70%);filter:blur(3px)"></div>
+        <!-- air swirl lines -->
+        <div style="position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 50% 62%,rgba(255,255,255,.05) 0 6deg,transparent 6deg 18deg);opacity:.5"></div>
+        <!-- air jet at bottom -->
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60px;height:90px;background:linear-gradient(0deg,rgba(255,255,255,.18),transparent);clip-path:polygon(38% 100%,62% 100%,100% 0,0 0)"></div>
+        <!-- balls injected -->
+        <div id="balls"></div>
+      </div>
+      <!-- pedestal -->
+      <div style="position:absolute;top:384px;left:50%;transform:translateX(-50%);width:120px;height:30px;background:linear-gradient(180deg,#2a3340,#161c25);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%);box-shadow:0 8px 16px rgba(0,0,0,.5)"></div>
+      <div style="position:absolute;top:412px;left:50%;transform:translateX(-50%);width:150px;height:12px;border-radius:6px;background:linear-gradient(180deg,#3a4452,#1a2029)"></div>
+      <!-- red base accent -->
+      <div style="position:absolute;top:388px;left:50%;transform:translateX(-50%);width:96px;height:6px;background:var(--whistle);border-radius:3px;opacity:.85"></div>
+    </div>
+
+    <!-- drawn ball callout -->
+    <div style="text-align:center;margin-top:8px">
+      <div class="cond muted" style="font-size:11px;letter-spacing:3px">BALL DRAWN → PICK 3</div>
+      <div style="display:inline-flex;align-items:center;gap:14px;margin-top:8px">
+        <div class="pong" style="position:relative;width:66px;height:66px"><div class="spec"></div>
+          <div class="ring" style="width:46px;height:46px;border:3px solid #3A86FF;color:#3A86FF;font-size:24px">07</div></div>
+        <div style="text-align:left"><div class="display" style="font-size:30px">DANA</div><div class="cond" style="font-size:13px;color:var(--field)">31% ODDS · ON THE BOARD</div></div>
+      </div>
+    </div>
+
+    <div class="scorebar" style="position:absolute;bottom:24px;left:18px;right:18px;padding:12px 14px;display:flex;gap:8px">
+      <span class="pill" style="border-color:var(--gold);color:var(--gold)">1 Priya</span>
+      <span class="pill">2 Marcus</span>
+      <span class="pill" style="border-color:var(--ice);color:var(--ice)">3 Dana ◂</span>
+      <span class="pill" style="opacity:.5">4 …</span>
+    </div>
+  </div>
+  <div class="home-ind"></div>
+</div></div>
+
+<script>
+function ball(num,color,size,x,y,dark){
+  return `<div class="pong" style="width:${size}px;height:${size}px;left:${x}px;top:${y}px">
+    <div class="spec"></div>
+    <div class="ring" style="width:${size*0.7}px;height:${size*0.7}px;border:${Math.max(2,size*0.06)}px solid ${color};color:${color};font-size:${size*0.42}px">${num}</div></div>`;
+}
+// balls tumbling in lower half of the 300px sphere
+const B=[
+ ['07','#3A86FF',56,60,150],
+ ['23','#FFB703',50,150,180],
+ ['12','#E63946',52,205,140],
+ ['05','#06D6A0',46,110,205],
+ ['88','#9b5de5',44,182,228],
+ ['44','#fb5607',44,52,205],
+ ['31','#34C759',42,238,200],
+];
+document.getElementById('balls').innerHTML = B.map(b=>ball(b[0],b[1],b[2],b[3],b[4])).join('');
+document.getElementById('tr').outerHTML = `<div class="ring" style="width:28px;height:28px;border:2px solid #3A86FF;color:#3A86FF;font-size:16px">07</div>`;
+</script>
+</body></html>

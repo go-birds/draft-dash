@@ -1,0 +1,68 @@
+name: draft_race
+description: "Draft Dash — fantasy football draft-order generator. Settle it on the field."
+publish_to: none
+
+# X.Y.Z+N — increment +N every store upload.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.3.1
+  sentry_flutter: ^9.0.0
+  shared_preferences: ^2.5.5
+  audioplayers: ^6.1.0
+  progenitor_core:
+    path: ../progenitor/packages/progenitor_core
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/audio/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+    - family: Anton
+      fonts:
+        - asset: assets/fonts/Anton-Regular.ttf
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Medium.ttf
+          weight: 500
+
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 21
+  adaptive_icon_background: "#0B1C38"
+  adaptive_icon_foreground: "assets/icon/icon_fg.png"
+
+flutter_native_splash:
+  color: "#0B0F14"
+  image: assets/icon/splash.png
+  android: true
+  ios: true
+  android_12:
+    color: "#0B0F14"
+    image: assets/icon/icon_fg.png

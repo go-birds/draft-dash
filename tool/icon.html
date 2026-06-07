@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  html,body{margin:0;width:1024px;height:1024px;overflow:hidden}
+  .wrap{width:1024px;height:1024px;position:relative;
+    background:radial-gradient(120% 90% at 50% 10%,#16335c,#0c1c38 55%,#0a1730 100%)}
+  .turf{position:absolute;bottom:0;left:0;right:0;height:300px;
+    background:repeating-linear-gradient(90deg,#2f8a3b 0 110px,#277a33 110px 220px)}
+  .turf .yl{position:absolute;top:0;bottom:0;width:8px;background:rgba(255,255,255,.65)}
+  .fade{position:absolute;bottom:0;left:0;right:0;height:300px;background:linear-gradient(180deg,transparent,rgba(10,23,48,.5))}
+  .ball{position:absolute;top:50%;left:50%;transform:translate(-50%,-52%)}
+  .speed{position:absolute;top:50%;left:18%;transform:translateY(-50%)}
+  .speed div{height:34px;border-radius:18px;background:rgba(245,165,36,.9);margin:26px 0;box-shadow:0 0 30px rgba(245,165,36,.6)}
+</style></head><body>
+<div class="wrap">
+  <div class="turf">
+    <div class="yl" style="left:14%"></div><div class="yl" style="left:38%"></div>
+    <div class="yl" style="left:62%"></div><div class="yl" style="left:86%"></div>
+  </div>
+  <div class="fade"></div>
+  <div class="speed">
+    <div style="width:150px"></div><div style="width:230px"></div><div style="width:170px"></div>
+  </div>
+  <div class="ball">
+    <svg width="620" height="430" viewBox="0 0 200 140">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFD27A"/><stop offset="0.5" stop-color="#F5A524"/><stop offset="1" stop-color="#C97F12"/>
+        </linearGradient>
+      </defs>
+      <g transform="rotate(-18 100 70)">
+        <path d="M30 70 Q100 2 170 70 Q100 138 30 70 Z" fill="url(#g)" stroke="#fff" stroke-width="7"/>
+        <line x1="72" y1="70" x2="128" y2="70" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+        <line x1="82" y1="58" x2="82" y2="82" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+        <line x1="94" y1="56" x2="94" y2="84" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+        <line x1="106" y1="56" x2="106" y2="84" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+        <line x1="118" y1="58" x2="118" y2="82" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </g>
+    </svg>
+  </div>
+</div>
+</body></html>
