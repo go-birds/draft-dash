@@ -3,7 +3,7 @@ description: "Draft Dash — fantasy football draft-order generator. Settle it o
 publish_to: none
 
 # X.Y.Z+N — increment +N every store upload.
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.5

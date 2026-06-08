@@ -21,10 +21,12 @@ class LotteryScreen extends ConsumerStatefulWidget {
 }
 
 class _LotteryScreenState extends ConsumerState<LotteryScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _tumble;
+  late final AnimationController _selectedBallFlight;
   int _roundIndex = 0;
   int _ballsDrawn = 0;
+  int? _pendingBall;
 
   @override
   void initState() {
@@ -33,11 +35,16 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
       vsync: this,
       duration: const Duration(seconds: 4),
     )..repeat();
+    _selectedBallFlight = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 920),
+    );
   }
 
   @override
   void dispose() {
     _tumble.dispose();
+    _selectedBallFlight.dispose();
     super.dispose();
   }
 
@@ -79,8 +86,8 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
         if (e.value > 0) e.key,
     };
 
-    void drawNext() {
-      if (currentRound == null) return;
+    Future<void> drawNext() async {
+      if (currentRound == null || _pendingBall != null) return;
       if (_ballsDrawn >= NbaLottery.ballsPerDraw) {
         setState(() {
           _roundIndex += 1;
@@ -89,7 +96,14 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
         return;
       }
       AppFeedback.of(ref).ballDraw();
-      setState(() => _ballsDrawn += 1);
+      final nextBall = currentRound.balls[_ballsDrawn];
+      setState(() => _pendingBall = nextBall);
+      await _selectedBallFlight.forward(from: 0);
+      if (!mounted) return;
+      setState(() {
+        _ballsDrawn += 1;
+        _pendingBall = null;
+      });
     }
 
     return Scaffold(
@@ -119,18 +133,34 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
               child: Center(
                 child: AnimatedBuilder(
                   animation: _tumble,
-                  builder: (_, child) => SizedBox(
-                    width: 300,
-                    height: 320,
-                    child: CustomPaint(
-                      painter: _MachinePainter(tk: tk),
-                      child: _BallField(
-                        t: _tumble.value,
-                        balls: [
-                          for (var i = 1; i <= NbaLottery.ballCount; i++) i,
+                  builder: (_, child) => AnimatedBuilder(
+                    animation: _selectedBallFlight,
+                    builder: (_, _) => SizedBox(
+                      width: 300,
+                      height: 320,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          CustomPaint(
+                            painter: _MachinePainter(tk: tk),
+                            child: _BallField(
+                              t: _tumble.value,
+                              balls: [
+                                for (var i = 1; i <= NbaLottery.ballCount; i++)
+                                  i,
+                              ],
+                              drawnBalls: drawnBalls,
+                              pendingBall: _pendingBall,
+                              tk: tk,
+                            ),
+                          ),
+                          if (_pendingBall != null)
+                            _SelectedBallFlight(
+                              ball: _pendingBall!,
+                              progress: _selectedBallFlight.value,
+                              tk: tk,
+                            ),
                         ],
-                        drawnBalls: drawnBalls,
-                        tk: tk,
                       ),
                     ),
                   ),
@@ -444,11 +474,13 @@ class _BallField extends StatelessWidget {
   final double t;
   final List<int> balls;
   final List<int> drawnBalls;
+  final int? pendingBall;
   final DraftTokens tk;
   const _BallField({
     required this.t,
     required this.balls,
     required this.drawnBalls,
+    required this.pendingBall,
     required this.tk,
   });
 
@@ -462,7 +494,8 @@ class _BallField extends StatelessWidget {
         return Stack(
           children: [
             for (var i = 0; i < balls.length; i++)
-              _positioned(i, balls.length, cx, cy, r, balls[i]),
+              if (balls[i] != pendingBall)
+                _positioned(i, balls.length, cx, cy, r, balls[i]),
           ],
         );
       },
@@ -490,4 +523,47 @@ class _BallField extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SelectedBallFlight extends StatelessWidget {
+  final int ball;
+  final double progress;
+  final DraftTokens tk;
+
+  const _SelectedBallFlight({
+    required this.ball,
+    required this.progress,
+    required this.tk,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final lift = Curves.easeOutCubic.transform((progress / .42).clamp(0, 1));
+    final expand = Curves.easeOutBack.transform(
+      ((progress - .28) / .34).clamp(0, 1),
+    );
+    final drop = Curves.easeInCubic.transform(
+      ((progress - .58) / .42).clamp(0, 1),
+    );
+    final x = 150.0;
+    final y = _lerp(182, 24, lift) + drop * 132;
+    final size = _lerp(44, 86, expand) - drop * 24;
+    final opacity = progress > .92 ? (1 - progress) / .08 : 1.0;
+
+    return Positioned(
+      left: x - size / 2,
+      top: y - size / 2,
+      child: Opacity(
+        opacity: opacity.clamp(0, 1),
+        child: LotteryBall(
+          color: tk.gold,
+          number: '$ball',
+          size: size,
+          highlight: true,
+        ),
+      ),
+    );
+  }
+
+  double _lerp(double a, double b, double t) => a + (b - a) * t;
 }

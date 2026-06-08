@@ -37,6 +37,7 @@ void main() {
       final cfg = DraftConfig(
         participants: roster(4, weights: [3, 2, 1, 1]),
         mode: DraftMode.lottery,
+        weightingEnabled: true,
         reverseOrder: true,
         pins: const {1: 'p2'},
       );
@@ -113,6 +114,7 @@ void main() {
       // p0 is 9x as likely as everyone else.
       final cfg = DraftConfig(
         participants: roster(5, weights: [9, 1, 1, 1, 1]),
+        weightingEnabled: true,
       );
       var firsts = 0;
       const trials = 4000;
@@ -141,6 +143,7 @@ void main() {
     test('reverseOrder sends the favored manager toward the last pick', () {
       final cfg = DraftConfig(
         participants: roster(6, weights: [50, 1, 1, 1, 1, 1]),
+        weightingEnabled: true,
         reverseOrder: true,
       );
       var lasts = 0;
@@ -152,7 +155,10 @@ void main() {
     });
 
     test('relativeOdds normalizes weights to sum ~1', () {
-      final cfg = DraftConfig(participants: roster(4, weights: [3, 1, 1, 1]));
+      final cfg = DraftConfig(
+        participants: roster(4, weights: [3, 1, 1, 1]),
+        weightingEnabled: true,
+      );
       final odds = DraftEngine.relativeOdds(cfg);
       final total = odds.values.fold<double>(0, (a, b) => a + b);
       expect(total, closeTo(1.0, 1e-9));

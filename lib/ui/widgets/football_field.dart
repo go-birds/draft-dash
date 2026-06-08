@@ -26,49 +26,60 @@ class RaceRunner {
 /// and the running-back sprites at their current progress.
 class FieldRacePainter extends CustomPainter {
   final List<RaceRunner> runners;
+  final double leaderProgress;
   final DraftTokens tk;
 
-  FieldRacePainter({required this.runners, required this.tk});
+  FieldRacePainter({
+    required this.runners,
+    required this.leaderProgress,
+    required this.tk,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    final endZoneW = w * 0.15;
-    final playW = w - endZoneW;
+    const visibleYards = 40.0;
+    final cameraStart = (leaderProgress * 100 - 20).clamp(0.0, 60.0);
+    double xForYard(double yard) => ((yard - cameraStart) / visibleYards) * w;
 
-    // mowed vertical stripes
-    final stripe = playW / 10;
-    for (var i = 0; i < 10; i++) {
-      final p = Paint()..color = i.isEven ? tk.turf : tk.turfDark;
-      canvas.drawRect(Rect.fromLTWH(i * stripe, 0, stripe + 1, h), p);
+    // mowed stripes every five yards across the 40-yard camera window.
+    for (var yard = cameraStart.floor() - 5; yard <= cameraStart + 45; yard++) {
+      if (yard % 5 != 0) continue;
+      final x0 = xForYard(yard.toDouble());
+      final x1 = xForYard(yard + 5);
+      final stripeIndex = (yard ~/ 5).abs();
+      canvas.drawRect(
+        Rect.fromLTRB(x0, 0, x1 + 1, h),
+        Paint()..color = stripeIndex.isEven ? tk.turf : tk.turfDark,
+      );
     }
 
-    // end zone
-    final ezPaint = Paint()..color = tk.endZone;
-    canvas.drawRect(Rect.fromLTWH(playW, 0, endZoneW, h), ezPaint);
-    final ezStripe = Paint()..color = tk.endZoneDark;
-    for (var y = 0.0; y < h; y += 18) {
-      canvas.drawRect(Rect.fromLTWH(playW, y, endZoneW, 9), ezStripe);
-    }
-    // goal line
-    canvas.drawRect(
-      Rect.fromLTWH(playW - 2.5, 0, 5, h),
-      Paint()..color = tk.yardLine,
-    );
+    // End zones just outside the 100-yard field.
+    _drawEndZone(canvas, Rect.fromLTRB(xForYard(-10), 0, xForYard(0), h));
+    _drawEndZone(canvas, Rect.fromLTRB(xForYard(100), 0, xForYard(110), h));
 
-    // yard lines + numbers
-    final line = Paint()
-      ..color = tk.yardLine.withValues(alpha: .55)
+    // yard lines + hash marks + numbers
+    final majorLine = Paint()
+      ..color = tk.yardLine.withValues(alpha: .62)
       ..strokeWidth = 2;
-    final yards = [40, 30, 20, 10];
-    for (var i = 1; i <= 4; i++) {
-      final x = playW * i / 5;
-      canvas.drawLine(Offset(x, 0), Offset(x, h), line);
-      _yardNumber(canvas, '${yards[i - 1]}', x, h);
+    final minorLine = Paint()
+      ..color = tk.yardLine.withValues(alpha: .28)
+      ..strokeWidth = 1;
+    for (var yard = 0; yard <= 100; yard += 5) {
+      final x = xForYard(yard.toDouble());
+      if (x < -30 || x > w + 30) continue;
+      final major = yard % 10 == 0;
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, h),
+        major ? majorLine : minorLine,
+      );
+      _hashMarks(canvas, x, h);
+      if (major && yard > 0 && yard < 100) {
+        _yardNumber(canvas, _yardLabel(yard), x, h * .23);
+        _yardNumber(canvas, _yardLabel(yard), x, h * .77, flipped: true);
+      }
     }
-    // 50 at midfield
-    final midX = playW * 0.5;
-    _yardNumber(canvas, '50', midX, h, big: true);
 
     // lighting vignette
     canvas.drawRect(
@@ -81,27 +92,37 @@ class FieldRacePainter extends CustomPainter {
         ).createShader(Offset.zero & size),
     );
 
-    // end-zone label (vertical)
-    _endZoneLabel(canvas, playW + endZoneW / 2, h);
+    // end-zone labels
+    _endZoneLabel(canvas, xForYard(-5), h);
+    _endZoneLabel(canvas, xForYard(105), h);
 
     // runners
     final n = runners.length;
     final laneH = h / n;
-    final startX = w * 0.05;
-    final goalX = playW + endZoneW * 0.35;
     for (var i = 0; i < n; i++) {
       final r = runners[i];
-      final cx = startX + (goalX - startX) * r.progress.clamp(0.0, 1.0);
+      final cx = xForYard(100 * r.progress.clamp(0.0, 1.0));
       final cy = laneH * (i + 0.5);
       final s = min(laneH * 0.78, 78.0);
       _drawRunner(canvas, Offset(cx, cy), s, r);
     }
   }
 
+  void _drawEndZone(Canvas canvas, Rect rect) {
+    canvas.drawRect(rect, Paint()..color = tk.endZone);
+    final ezStripe = Paint()..color = tk.endZoneDark;
+    for (var y = rect.top; y < rect.bottom; y += 18) {
+      canvas.drawRect(Rect.fromLTWH(rect.left, y, rect.width, 9), ezStripe);
+    }
+  }
+
   void _drawRunner(Canvas c, Offset center, double s, RaceRunner r) {
     final color = r.color;
     final skin = const Color(0xFFE7B58A);
-    final stride = sin(r.stride) * 0.5;
+    final stride = sin(r.stride);
+    final counter = cos(r.stride);
+    final bob = sin(r.stride * 2) * s * 0.025;
+    center = center.translate(0, bob);
 
     // shadow
     c.drawOval(
@@ -142,15 +163,15 @@ class FieldRacePainter extends CustomPainter {
 
     // back leg
     final backFoot = Offset(
-      center.dx - s * 0.22 - stride * s * 0.2,
-      center.dy + s * 0.42,
+      center.dx - s * 0.24 - stride * s * 0.23,
+      center.dy + s * 0.42 + counter * s * .04,
     );
     c.drawLine(Offset(center.dx, hipY), backFoot, pants);
     c.drawLine(backFoot, backFoot.translate(-s * 0.14, s * 0.02), cleat);
     // front leg
     final frontFoot = Offset(
-      center.dx + s * 0.20 + stride * s * 0.2,
-      center.dy + s * 0.40,
+      center.dx + s * 0.22 + stride * s * 0.23,
+      center.dy + s * 0.40 - counter * s * .04,
     );
     c.drawLine(Offset(center.dx, hipY), frontFoot, pants);
     c.drawLine(frontFoot, frontFoot.translate(s * 0.16, s * 0.02), cleat);
@@ -191,11 +212,11 @@ class FieldRacePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     c.drawLine(
       Offset(center.dx - s * 0.05, shoulderY + s * 0.08),
-      Offset(center.dx - s * 0.28, shoulderY - stride * s * 0.1),
+      Offset(center.dx - s * 0.28, shoulderY - stride * s * 0.18),
       arm,
     );
     c.drawCircle(
-      Offset(center.dx - s * 0.30, shoulderY - stride * s * 0.1),
+      Offset(center.dx - s * 0.30, shoulderY - stride * s * 0.18),
       s * 0.06,
       Paint()..color = skin,
     );
@@ -203,10 +224,13 @@ class FieldRacePainter extends CustomPainter {
     // front arm + football
     c.drawLine(
       Offset(center.dx + s * 0.10, shoulderY + s * 0.08),
-      Offset(center.dx + s * 0.30, shoulderY + s * 0.04),
+      Offset(center.dx + s * 0.30, shoulderY + s * 0.04 + stride * s * .10),
       arm,
     );
-    final ballC = Offset(center.dx + s * 0.40, shoulderY + s * 0.06);
+    final ballC = Offset(
+      center.dx + s * 0.40,
+      shoulderY + s * 0.06 + stride * s * .08,
+    );
     c.save();
     c.translate(ballC.dx, ballC.dy);
     c.rotate(0.5);
@@ -248,14 +272,41 @@ class FieldRacePainter extends CustomPainter {
     );
   }
 
-  void _yardNumber(Canvas c, String s, double x, double h, {bool big = false}) {
+  String _yardLabel(int yard) =>
+      yard == 50 ? '50' : '${yard < 50 ? yard : 100 - yard}';
+
+  void _hashMarks(Canvas c, double x, double h) {
+    final p = Paint()
+      ..color = tk.yardLine.withValues(alpha: .45)
+      ..strokeWidth = 1.5;
+    const hashW = 10.0;
+    for (final y in [h * .34, h * .66]) {
+      c.drawLine(Offset(x - hashW / 2, y), Offset(x + hashW / 2, y), p);
+    }
+  }
+
+  void _yardNumber(
+    Canvas c,
+    String s,
+    double x,
+    double y, {
+    bool flipped = false,
+  }) {
+    c.save();
+    if (flipped) {
+      c.translate(x, y);
+      c.rotate(pi);
+      x = 0;
+      y = 0;
+    }
     _text(
       c,
       s,
-      Offset(x, h * 0.5),
-      big ? 30 : 24,
+      Offset(x, y),
+      s == '50' ? 30 : 24,
       tk.yardLine.withValues(alpha: .5),
     );
+    c.restore();
   }
 
   void _endZoneLabel(Canvas c, double cx, double h) {

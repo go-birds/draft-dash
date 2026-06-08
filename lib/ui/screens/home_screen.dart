@@ -86,7 +86,14 @@ class HomeScreen extends ConsumerWidget {
                       PrimaryButton(
                         hasLeague ? 'NEW DRAFT' : 'GET STARTED',
                         icon: Icons.play_arrow_rounded,
-                        onPressed: () => open(const SetupScreen()),
+                        onPressed: () {
+                          if (hasLeague) {
+                            ref
+                                .read(draftConfigProvider.notifier)
+                                .prepareNewDraft();
+                          }
+                          open(const SetupScreen());
+                        },
                       ),
                       if (hasLeague) ...[
                         const SizedBox(height: 12),

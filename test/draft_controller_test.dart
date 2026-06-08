@@ -126,6 +126,47 @@ void main() {
     expect(container.read(draftConfigProvider).ledgerEntries, isEmpty);
     expect(storage.loadConfig()?.ledgerEntries, isEmpty);
   });
+
+  test(
+    'prepareNewDraft resets manual odds and locks but keeps ledger',
+    () async {
+      final (:container, :storage) = await _container();
+      addTearDown(container.dispose);
+      final config = container.read(draftConfigProvider.notifier);
+
+      config.addManager('Nick');
+      config.addManager('Jordan');
+      final state = container.read(draftConfigProvider);
+      final nickId = state.participants.first.id;
+      final jordanId = state.participants.last.id;
+      config.setWeightingEnabled(true);
+      config.setReverseOrder(true);
+      config.setWeight(nickId, 3);
+      config.setPin(0, jordanId);
+      config.setLotteryPickCount(0);
+      config.addLedgerEntry(
+        LeagueLedgerEntry(
+          id: 'e1',
+          type: LedgerEntryType.oddsBoost,
+          managerId: nickId,
+          title: 'Consolation champ',
+          weightDelta: .5,
+          createdAt: DateTime.utc(2026, 6, 8),
+        ),
+      );
+
+      config.prepareNewDraft();
+
+      final prepared = container.read(draftConfigProvider);
+      expect(prepared.weightingEnabled, isFalse);
+      expect(prepared.reverseOrder, isFalse);
+      expect(prepared.pins, isEmpty);
+      expect(prepared.lotteryPickCount, isNull);
+      expect(prepared.participants.map((p) => p.weight), [1, 1]);
+      expect(prepared.ledgerEntries, hasLength(1));
+      expect(storage.loadConfig()?.ledgerEntries, hasLength(1));
+    },
+  );
 }
 
 Future<({ProviderContainer container, StorageService storage})>

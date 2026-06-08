@@ -30,7 +30,7 @@ class DraftConfig {
   const DraftConfig({
     required this.participants,
     this.mode = DraftMode.race,
-    this.weightingEnabled = true,
+    this.weightingEnabled = false,
     this.reverseOrder = false,
     this.pins = const {},
     this.lotteryPickCount,
@@ -49,10 +49,12 @@ class DraftConfig {
     final adjustments = <String, double>{};
     final ledgerPins = <int, String>{};
     final validIds = {for (final p in participants) p.id};
+    var hasLedgerOdds = false;
 
     for (final entry in ledgerEntries) {
       if (!validIds.contains(entry.managerId)) continue;
       if (entry.affectsOdds) {
+        hasLedgerOdds = true;
         adjustments[entry.managerId] =
             (adjustments[entry.managerId] ?? 0) + entry.weightDelta;
       }
@@ -72,6 +74,7 @@ class DraftConfig {
           ),
       ],
       pins: {...pins, ...ledgerPins},
+      weightingEnabled: weightingEnabled || hasLedgerOdds,
     );
   }
 
@@ -82,6 +85,7 @@ class DraftConfig {
     bool? reverseOrder,
     Map<int, String>? pins,
     int? lotteryPickCount,
+    bool clearLotteryPickCount = false,
     List<LeagueLedgerEntry>? ledgerEntries,
   }) {
     return DraftConfig(
@@ -90,7 +94,9 @@ class DraftConfig {
       weightingEnabled: weightingEnabled ?? this.weightingEnabled,
       reverseOrder: reverseOrder ?? this.reverseOrder,
       pins: pins ?? this.pins,
-      lotteryPickCount: lotteryPickCount ?? this.lotteryPickCount,
+      lotteryPickCount: clearLotteryPickCount
+          ? null
+          : lotteryPickCount ?? this.lotteryPickCount,
       ledgerEntries: ledgerEntries ?? this.ledgerEntries,
     );
   }
@@ -112,7 +118,7 @@ class DraftConfig {
         Participant.fromJson(Map<String, dynamic>.from(p as Map)),
     ],
     mode: DraftMode.fromCode((j['mode'] ?? 'race') as String),
-    weightingEnabled: (j['weightingEnabled'] as bool?) ?? true,
+    weightingEnabled: (j['weightingEnabled'] as bool?) ?? false,
     reverseOrder: (j['reverseOrder'] as bool?) ?? false,
     lotteryPickCount: (j['lotteryPickCount'] as num?)?.toInt(),
     ledgerEntries: [

@@ -250,6 +250,16 @@ class DraftConfigController extends Notifier<DraftConfig> {
 
   void clearLeague() => _set(const DraftConfig(participants: []));
 
+  void prepareNewDraft() => _set(
+    state.copyWith(
+      participants: [for (final p in _ps) p.copyWith(weight: 1.0)],
+      weightingEnabled: false,
+      reverseOrder: false,
+      pins: const {},
+      clearLotteryPickCount: true,
+    ),
+  );
+
   Participant? _tryById(String id) {
     for (final p in _ps) {
       if (p.id == id) return p;

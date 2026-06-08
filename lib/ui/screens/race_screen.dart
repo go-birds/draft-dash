@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 
 import '../../domain/draft/participant.dart';
 import '../../services/feedback.dart';
@@ -34,6 +35,12 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
   @override
   void initState() {
     super.initState();
+    unawaited(
+      SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]),
+    );
     final cfg = ref.read(draftConfigProvider);
     final result = ref.read(draftControllerProvider);
     _lineup = cfg.participants;
@@ -95,6 +102,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
   void dispose() {
     _countTimer?.cancel();
     _race.dispose();
+    unawaited(SystemChrome.setPreferredOrientations(DeviceOrientation.values));
     super.dispose();
   }
 
@@ -120,13 +128,17 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
           final t = _racing ? _race.value : 0.0;
           // current progress per participant
           final prog = {for (final p in _lineup) p.id: _progressFor(p.id, t)};
+          final leaderProgress = prog.values.fold<double>(
+            0,
+            (best, value) => value > best ? value : best,
+          );
           final runners = [
             for (var i = 0; i < _n; i++)
               RaceRunner(
                 color: Color(_lineup[i].colorValue),
                 number: _lineup[i].number,
                 progress: prog[_lineup[i].id]!,
-                stride: _racing ? t * 26 + i : 0,
+                stride: _racing ? t * 42 + i * .8 : 0,
                 leader: false,
               ),
           ];
@@ -163,7 +175,11 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
             children: [
               Positioned.fill(
                 child: CustomPaint(
-                  painter: FieldRacePainter(runners: runnersWithLeader, tk: tk),
+                  painter: FieldRacePainter(
+                    runners: runnersWithLeader,
+                    leaderProgress: leaderProgress,
+                    tk: tk,
+                  ),
                 ),
               ),
               _Scoreboard(leader: leader, t: t),
