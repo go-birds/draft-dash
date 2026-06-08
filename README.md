@@ -34,7 +34,6 @@ assets/
 └── icon/           # Source launcher/splash artwork
 
 docs/               # Release and contributor runbooks
-mockups/            # Design/reference mockups
 tool/               # Asset-generation helpers
 test/               # Unit and widget tests
 ```
