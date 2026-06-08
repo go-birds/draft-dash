@@ -1,6 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 
-/// Plays short bundled SFX. Files live in `assets/audio/<name>.mp3`.
+/// Plays short bundled SFX. Files live in `assets/audio/<name>.wav`.
 /// Missing files fail silently so the app works before assets are added.
 class SoundService {
   SoundService._();

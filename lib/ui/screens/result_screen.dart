@@ -8,6 +8,7 @@ import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/buttons.dart';
 import '../widgets/jersey_chip.dart';
+import '../widgets/top_picks_podium.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({super.key});
@@ -30,11 +31,10 @@ class ResultScreen extends ConsumerWidget {
       );
     }
 
-    final byId = {for (final p in cfg.participants) p.id: p};
-    final ordered = [
-      for (final id in result.order)
-        if (byId[id] != null) byId[id]!,
-    ];
+    final ordered = result.resolve(cfg.participants);
+    if (ordered.length != result.order.length) {
+      return _UnavailableResult(resultProofCode: result.proofCode);
+    }
     final champ = ordered.first;
 
     void reorder(int oldIndex, int newIndex) {
@@ -113,6 +113,12 @@ class ResultScreen extends ConsumerWidget {
           Expanded(
             child: ReorderableListView.builder(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              header: ordered.length >= 3
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 4, 0, 10),
+                      child: TopPicksPodium(ordered: ordered),
+                    )
+                  : null,
               itemCount: ordered.length,
               onReorder: reorder,
               proxyDecorator: (child, index, anim) =>
@@ -176,6 +182,66 @@ class ResultScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _UnavailableResult extends StatelessWidget {
+  final String resultProofCode;
+  const _UnavailableResult({required this.resultProofCode});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Scaffold(
+      backgroundColor: tk.background,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: tk.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: tk.scoreboardLine),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.assignment_late_rounded, color: tk.gold, size: 42),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Draft details unavailable',
+                    textAlign: TextAlign.center,
+                    style: tk.title.copyWith(fontSize: 20),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'The pick order exists, but manager details are missing. '
+                    'Start a fresh draft to rebuild the board.',
+                    textAlign: TextAlign.center,
+                    style: tk.body.copyWith(color: tk.textMuted, fontSize: 13),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    resultProofCode,
+                    style: tk.mono.copyWith(fontSize: 12, color: tk.led),
+                  ),
+                  const SizedBox(height: 18),
+                  PrimaryButton(
+                    'BACK TO SETUP',
+                    height: 50,
+                    fontSize: 17,
+                    onPressed: () =>
+                        Navigator.of(context).popUntil((r) => r.isFirst),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

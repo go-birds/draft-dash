@@ -134,6 +134,8 @@ class DraftConfigController extends Notifier<DraftConfig> {
     unawaited(ref.read(storageProvider).saveConfig(c));
   }
 
+  void restore(DraftConfig c) => _set(c);
+
   List<Participant> get _ps => state.participants;
 
   void addManager([String name = '']) {
@@ -170,11 +172,17 @@ class DraftConfigController extends Notifier<DraftConfig> {
     );
   }
 
-  void setWeight(String id, double w) =>
-      updateManager(_byId(id).copyWith(weight: w));
+  void setWeight(String id, double w) {
+    final p = _tryById(id);
+    if (p == null) return;
+    updateManager(p.copyWith(weight: w));
+  }
 
-  void setBudget(String id, int b) =>
-      updateManager(_byId(id).copyWith(budget: b));
+  void setBudget(String id, int b) {
+    final p = _tryById(id);
+    if (p == null) return;
+    updateManager(p.copyWith(budget: b));
+  }
 
   void reorder(int oldIndex, int newIndex) {
     final list = [..._ps];
@@ -214,7 +222,12 @@ class DraftConfigController extends Notifier<DraftConfig> {
 
   void clearLeague() => _set(const DraftConfig(participants: []));
 
-  Participant _byId(String id) => _ps.firstWhere((p) => p.id == id);
+  Participant? _tryById(String id) {
+    for (final p in _ps) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
 }
 
 final draftConfigProvider =
@@ -253,14 +266,17 @@ class DraftController extends Notifier<DraftResult?> {
   Future<void> saveToHistory() async {
     final s = state;
     if (s == null) return;
-    final name = ref.read(leagueNameProvider);
+    final name = ref.read(leagueNameProvider).trim();
     final cfg = ref.read(draftConfigProvider);
+    final rosterSnapshot = s.rosterSnapshot.isNotEmpty
+        ? s.rosterSnapshot
+        : cfg.participants;
     await ref
         .read(historyProvider.notifier)
         .add(
           s.copyWith(
             leagueName: name.isEmpty ? null : name,
-            rosterSnapshot: cfg.participants,
+            rosterSnapshot: rosterSnapshot,
           ),
         );
   }
@@ -309,11 +325,17 @@ final auctionProvider = NotifierProvider<AuctionController, AuctionState?>(
 
 // ─── history ──────────────────────────────────────────────────────────────────
 class HistoryController extends Notifier<List<DraftResult>> {
+  static const _maxSavedDrafts = 50;
+
   @override
   List<DraftResult> build() => ref.read(storageProvider).loadHistory();
 
   Future<void> add(DraftResult r) async {
-    final next = [r, ...state];
+    final existing = [
+      for (final saved in state)
+        if (!_sameDraft(saved, r)) saved,
+    ];
+    final next = [r, ...existing].take(_maxSavedDrafts).toList();
     state = next;
     await ref.read(storageProvider).saveHistory(next);
   }
@@ -321,6 +343,18 @@ class HistoryController extends Notifier<List<DraftResult>> {
   Future<void> clearAll() async {
     state = [];
     await ref.read(storageProvider).saveHistory(const []);
+  }
+
+  bool _sameDraft(DraftResult a, DraftResult b) {
+    if (a.seed != b.seed ||
+        a.mode != b.mode ||
+        a.order.length != b.order.length) {
+      return false;
+    }
+    for (var i = 0; i < a.order.length; i++) {
+      if (a.order[i] != b.order[i]) return false;
+    }
+    return true;
   }
 }
 

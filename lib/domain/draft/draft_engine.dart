@@ -3,6 +3,7 @@ import 'dart:math';
 import 'draft_config.dart';
 import 'draft_mode.dart';
 import 'draft_result.dart';
+import 'participant.dart';
 
 /// The heart of the app. Pure, deterministic given a seed.
 ///
@@ -30,8 +31,12 @@ class DraftEngine {
     // 3. Place pins at their exact pick slots; fill the rest from baseOrder.
     final result = List<String?>.filled(n, null);
     final pinnedIds = <String>{};
+    final validIds = {for (final p in config.participants) p.id};
     config.pins.forEach((slot, id) {
-      if (slot >= 0 && slot < n) {
+      if (slot >= 0 &&
+          slot < n &&
+          validIds.contains(id) &&
+          !pinnedIds.contains(id)) {
         result[slot] = id;
         pinnedIds.add(id);
       }
@@ -59,6 +64,7 @@ class DraftEngine {
       seed: seed,
       mode: config.mode,
       createdAt: DateTime.now(),
+      rosterSnapshot: List<Participant>.unmodifiable(config.participants),
     );
   }
 

@@ -98,7 +98,21 @@ class ManagerTile extends ConsumerWidget {
             ),
           IconButton(
             icon: Icon(Icons.close, size: 18, color: tk.textMuted),
-            onPressed: () => ctrl.removeManager(p.id),
+            onPressed: () {
+              final previous = ref.read(draftConfigProvider);
+              ctrl.removeManager(p.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${p.name} removed'),
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () => ref
+                        .read(draftConfigProvider.notifier)
+                        .restore(previous),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

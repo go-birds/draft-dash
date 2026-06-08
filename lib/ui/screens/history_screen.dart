@@ -4,8 +4,14 @@ import 'package:flutter/services.dart';
 
 import '../../domain/draft/draft_mode.dart';
 import '../../domain/draft/draft_recap.dart';
+import '../../domain/draft/draft_result.dart';
+import '../../domain/draft/participant.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/buttons.dart';
+import '../widgets/confirm_destructive_action.dart';
+import '../widgets/jersey_chip.dart';
+import '../widgets/top_picks_podium.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -30,7 +36,22 @@ class HistoryScreen extends ConsumerWidget {
         actions: [
           if (history.isNotEmpty)
             TextButton(
-              onPressed: () => ref.read(historyProvider.notifier).clearAll(),
+              onPressed: () async {
+                final confirmed = await confirmDestructiveAction(
+                  context,
+                  title: 'Clear draft history?',
+                  message:
+                      'This removes every saved draft board from this device. '
+                      'Your current league setup stays intact.',
+                  confirmLabel: 'Clear history',
+                );
+                if (!confirmed || !context.mounted) return;
+                await ref.read(historyProvider.notifier).clearAll();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Draft history cleared')),
+                );
+              },
               child: Text('Clear', style: TextStyle(color: tk.textMuted)),
             ),
         ],
@@ -59,12 +80,14 @@ class HistoryScreen extends ConsumerWidget {
               itemBuilder: (_, i) {
                 final r = history[i];
                 final ordered = r.resolve(const []);
-                final champ = ordered.isEmpty ? null : ordered.first;
+                final boardReady =
+                    r.order.isNotEmpty && ordered.length == r.order.length;
+                final champ = boardReady ? ordered.first : null;
                 final d = r.createdAt;
                 final date =
                     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
                 Future<void> copyRecap() async {
-                  if (ordered.isEmpty) return;
+                  if (!boardReady) return;
                   final recap = DraftRecap.format(
                     mode: r.mode,
                     ordered: ordered,
@@ -78,59 +101,92 @@ class HistoryScreen extends ConsumerWidget {
                   );
                 }
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: tk.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: tk.scoreboardLine),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        _modeEmoji[r.mode] ?? '🏈',
-                        style: const TextStyle(fontSize: 26),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => _SavedDraftDetailScreen(result: r),
+                          ),
+                        );
+                      },
+                      child: Ink(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: tk.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: tk.scoreboardLine),
+                        ),
+                        child: Row(
                           children: [
                             Text(
-                              r.leagueName ?? 'Draft',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tk.title.copyWith(fontSize: 16),
+                              _modeEmoji[r.mode] ?? '🏈',
+                              style: const TextStyle(fontSize: 26),
                             ),
-                            Text(
-                              '${r.mode.label} · $date · ${r.size} mgrs · ${r.proofCode}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tk.body.copyWith(
-                                fontSize: 12,
-                                color: tk.textMuted,
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    r.leagueName ?? 'Draft',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: tk.title.copyWith(fontSize: 16),
+                                  ),
+                                  Text(
+                                    '${r.mode.label} · $date · ${r.size} mgrs · ${r.proofCode}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: tk.body.copyWith(
+                                      fontSize: 12,
+                                      color: tk.textMuted,
+                                    ),
+                                  ),
+                                  if (!boardReady && r.order.isNotEmpty)
+                                    Text(
+                                      'Manager details unavailable',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: tk.body.copyWith(
+                                        fontSize: 11,
+                                        color: tk.whistle,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      if (champ != null)
-                        SizedBox(
-                          width: 88,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                champ.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: tk.body.copyWith(
-                                  fontSize: 12,
-                                  color: tk.gold,
-                                  fontWeight: FontWeight.w700,
+                            if (champ != null)
+                              SizedBox(
+                                width: 88,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      champ.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: tk.body.copyWith(
+                                        fontSize: 12,
+                                        color: tk.gold,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    Text(
+                                      'pick 1',
+                                      style: tk.body.copyWith(
+                                        fontSize: 10,
+                                        color: tk.textMuted,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
+                              )
+                            else if (r.order.isNotEmpty)
                               Text(
                                 'pick 1',
                                 style: tk.body.copyWith(
@@ -138,35 +194,306 @@ class HistoryScreen extends ConsumerWidget {
                                   color: tk.textMuted,
                                 ),
                               ),
+                            if (boardReady) ...[
+                              const SizedBox(width: 8),
+                              IconButton(
+                                tooltip: 'Copy recap',
+                                icon: Icon(
+                                  Icons.copy_rounded,
+                                  color: tk.textMuted,
+                                ),
+                                constraints: const BoxConstraints.tightFor(
+                                  width: 40,
+                                  height: 40,
+                                ),
+                                padding: EdgeInsets.zero,
+                                onPressed: copyRecap,
+                              ),
+                            ] else ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.chevron_right, color: tk.textMuted),
                             ],
-                          ),
-                        )
-                      else if (r.order.isNotEmpty)
-                        Text(
-                          'pick 1',
-                          style: tk.body.copyWith(
-                            fontSize: 10,
-                            color: tk.textMuted,
-                          ),
+                          ],
                         ),
-                      if (ordered.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          tooltip: 'Copy recap',
-                          icon: Icon(Icons.copy_rounded, color: tk.textMuted),
-                          constraints: const BoxConstraints.tightFor(
-                            width: 40,
-                            height: 40,
-                          ),
-                          padding: EdgeInsets.zero,
-                          onPressed: copyRecap,
-                        ),
-                      ],
-                    ],
+                      ),
+                    ),
                   ),
                 );
               },
             ),
+    );
+  }
+}
+
+class _SavedDraftDetailScreen extends StatelessWidget {
+  final DraftResult result;
+  const _SavedDraftDetailScreen({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    final ordered = result.resolve(const []);
+    final boardReady =
+        result.order.isNotEmpty && ordered.length == result.order.length;
+    final d = result.createdAt;
+    final date =
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+    Future<void> copyRecap() async {
+      if (!boardReady) return;
+      final recap = DraftRecap.format(
+        mode: result.mode,
+        ordered: ordered,
+        leagueName: result.leagueName,
+        proofCode: result.proofCode,
+      );
+      await Clipboard.setData(ClipboardData(text: recap));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Draft recap copied')));
+    }
+
+    return Scaffold(
+      backgroundColor: tk.background,
+      appBar: AppBar(
+        backgroundColor: tk.background,
+        title: Text(
+          'SAVED BOARD',
+          style: tk.displayLarge.copyWith(fontSize: 24),
+        ),
+      ),
+      body: boardReady
+          ? ListView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              children: [
+                _SavedBoardHero(
+                  result: result,
+                  champ: ordered.first,
+                  date: date,
+                ),
+                const SizedBox(height: 14),
+                GhostButton(
+                  'COPY RECAP',
+                  icon: Icons.copy_rounded,
+                  onPressed: copyRecap,
+                ),
+                if (ordered.length >= 3) ...[
+                  const SizedBox(height: 14),
+                  TopPicksPodium(ordered: ordered),
+                ],
+                const SizedBox(height: 18),
+                Text(
+                  'FULL DRAFT BOARD',
+                  style: tk.label.copyWith(color: tk.gold, letterSpacing: 2),
+                ),
+                const SizedBox(height: 10),
+                for (var i = 0; i < ordered.length; i++)
+                  _SavedPickRow(index: i, participant: ordered[i]),
+              ],
+            )
+          : _MissingBoardDetails(resultProofCode: result.proofCode),
+    );
+  }
+}
+
+class _SavedBoardHero extends StatelessWidget {
+  final DraftResult result;
+  final Participant champ;
+  final String date;
+
+  const _SavedBoardHero({
+    required this.result,
+    required this.champ,
+    required this.date,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          colors: [tk.scoreboard, tk.surface],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: tk.scoreboardLine),
+        boxShadow: [
+          BoxShadow(
+            color: tk.gold.withValues(alpha: .12),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                result.leagueName ?? 'Draft',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tk.displayLarge.copyWith(fontSize: 24),
+              ),
+              const Spacer(),
+              Text(
+                result.proofCode,
+                style: tk.mono.copyWith(fontSize: 12, color: tk.led),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${result.mode.label} · $date · ${result.size} managers',
+            style: tk.body.copyWith(fontSize: 13, color: tk.textMuted),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: tk.gold.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: tk.gold.withValues(alpha: .45)),
+            ),
+            child: Row(
+              children: [
+                JerseyChip(
+                  color: Color(champ.colorValue),
+                  number: champ.number,
+                  size: 54,
+                  highlight: true,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'FIRST OVERALL',
+                        style: tk.label.copyWith(
+                          color: tk.gold,
+                          letterSpacing: 2,
+                          fontSize: 11,
+                        ),
+                      ),
+                      Text(
+                        champ.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tk.title.copyWith(fontSize: 22),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SavedPickRow extends StatelessWidget {
+  final int index;
+  final Participant participant;
+
+  const _SavedPickRow({required this.index, required this.participant});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    final first = index == 0;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: first ? tk.gold.withValues(alpha: .10) : tk.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: first ? tk.gold : tk.scoreboardLine),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 40,
+            child: Text(
+              '${index + 1}',
+              textAlign: TextAlign.center,
+              style: tk.displayLarge.copyWith(
+                fontSize: 26,
+                color: first ? tk.gold : tk.textMuted,
+              ),
+            ),
+          ),
+          JerseyChip(
+            color: Color(participant.colorValue),
+            number: participant.number,
+            size: 42,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              participant.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: tk.title.copyWith(fontSize: 18),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MissingBoardDetails extends StatelessWidget {
+  final String resultProofCode;
+
+  const _MissingBoardDetails({required this.resultProofCode});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: tk.surface,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: tk.scoreboardLine),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.assignment_late_rounded, color: tk.gold, size: 42),
+              const SizedBox(height: 14),
+              Text(
+                'Saved board details unavailable',
+                textAlign: TextAlign.center,
+                style: tk.title.copyWith(fontSize: 20),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'The saved pick order exists, but manager details are missing. '
+                'Newly saved boards include a full roster snapshot.',
+                textAlign: TextAlign.center,
+                style: tk.body.copyWith(color: tk.textMuted, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                resultProofCode,
+                style: tk.mono.copyWith(fontSize: 12, color: tk.led),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

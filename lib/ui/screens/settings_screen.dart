@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../theme/themes.dart';
+import '../widgets/confirm_destructive_action.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -76,7 +77,16 @@ class SettingsScreen extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.delete_outline, color: tk.whistle),
             title: Text('Clear saved league', style: tk.body),
-            onTap: () {
+            onTap: () async {
+              final confirmed = await confirmDestructiveAction(
+                context,
+                title: 'Clear saved league?',
+                message:
+                    'This removes saved managers, odds, pins, and league name '
+                    'from this device. Draft history stays saved.',
+                confirmLabel: 'Clear league',
+              );
+              if (!confirmed || !context.mounted) return;
               ref.read(draftConfigProvider.notifier).clearLeague();
               ref.read(leagueNameProvider.notifier).set('');
               ScaffoldMessenger.of(

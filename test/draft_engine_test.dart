@@ -24,6 +24,14 @@ void main() {
       expect(r.order.toSet(), {for (final p in cfg.participants) p.id});
     });
 
+    test('snapshots manager details for result screens and recaps', () {
+      final cfg = DraftConfig(participants: roster(4));
+      final r = DraftEngine.generate(cfg, seed: 7);
+
+      expect(r.rosterSnapshot, cfg.participants);
+      expect(r.resolve(const []).map((p) => p.name), hasLength(4));
+    });
+
     test('is deterministic for a given seed', () {
       final cfg = DraftConfig(participants: roster(10));
       final a = DraftEngine.generate(cfg, seed: 42);
@@ -49,6 +57,20 @@ void main() {
         expect(r.order[3], 'p1');
         expect(r.order.toSet().length, 8); // still valid
       }
+    });
+
+    test('ignores stale or duplicated commissioner pins', () {
+      final cfg = DraftConfig(
+        participants: roster(5),
+        pins: {0: 'missing', 1: 'p3', 2: 'p3', 99: 'p4'},
+      );
+
+      final r = DraftEngine.generate(cfg, seed: 7);
+
+      expect(r.order.length, 5);
+      expect(r.order.toSet().length, 5);
+      expect(r.order.toSet(), {for (final p in cfg.participants) p.id});
+      expect(r.order[1], 'p3');
     });
 
     test('all-pinned config reproduces the pins exactly', () {

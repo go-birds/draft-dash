@@ -5,6 +5,7 @@ import '../../domain/draft/draft_mode.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/buttons.dart';
+import '../widgets/confirm_destructive_action.dart';
 import '../widgets/jersey_chip.dart';
 import '../widgets/manager_tile.dart';
 import '../widgets/mode_card.dart';
@@ -332,7 +333,18 @@ class _CommissionerSheet extends ConsumerWidget {
                 const Spacer(),
                 if (cfg.pins.isNotEmpty)
                   TextButton(
-                    onPressed: ctrl.clearAllPins,
+                    onPressed: () async {
+                      final confirmed = await confirmDestructiveAction(
+                        context,
+                        title: 'Clear commissioner locks?',
+                        message:
+                            'This removes every locked pick and returns the '
+                            'draft to a fully random draw.',
+                        confirmLabel: 'Clear locks',
+                      );
+                      if (!confirmed || !context.mounted) return;
+                      ctrl.clearAllPins();
+                    },
                     child: const Text('Clear all'),
                   ),
               ],

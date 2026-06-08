@@ -123,5 +123,6 @@ class AuctionState {
     seed: seed,
     mode: DraftMode.bidding,
     createdAt: DateTime.now(),
+    rosterSnapshot: List<Participant>.unmodifiable(participants),
   );
 }

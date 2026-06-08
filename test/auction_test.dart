@@ -58,6 +58,8 @@ void main() {
       expect(a.assignedPicks.toSet().length, 4);
       final result = a.toResult(seed: 0);
       expect(result.order.length, 4);
+      expect(result.rosterSnapshot, a.participants);
+      expect(result.resolve(const []).map((p) => p.name), hasLength(4));
     });
 
     test('commissioner breaks ties in their favor', () {
