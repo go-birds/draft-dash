@@ -40,17 +40,24 @@ class ModeCard extends StatelessWidget {
           children: [
             Text(emoji, style: const TextStyle(fontSize: 26)),
             const SizedBox(height: 6),
-            Text(title.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tk.displayLarge.copyWith(fontSize: 18)),
+            Text(
+              title.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: tk.displayLarge.copyWith(fontSize: 18),
+            ),
             const SizedBox(height: 3),
             Flexible(
-              child: Text(blurb,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: tk.body
-                      .copyWith(fontSize: 11, color: tk.textMuted, height: 1.25)),
+              child: Text(
+                blurb,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: tk.body.copyWith(
+                  fontSize: 11,
+                  color: tk.textMuted,
+                  height: 1.25,
+                ),
+              ),
             ),
           ],
         ),

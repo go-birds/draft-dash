@@ -53,9 +53,11 @@ class ManagerTile extends ConsumerWidget {
                   child: Row(
                     children: [
                       Flexible(
-                        child: Text(p.name,
-                            overflow: TextOverflow.ellipsis,
-                            style: tk.title.copyWith(fontSize: 18)),
+                        child: Text(
+                          p.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: tk.title.copyWith(fontSize: 18),
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Icon(Icons.edit, size: 13, color: tk.textMuted),
@@ -68,7 +70,10 @@ class ManagerTile extends ConsumerWidget {
                 else if (weightingEnabled)
                   _oddsRow(context, ctrl, tk)
                 else
-                  Text('odds even', style: tk.body.copyWith(fontSize: 12, color: tk.textMuted)),
+                  Text(
+                    'odds even',
+                    style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
+                  ),
               ],
             ),
           ),
@@ -77,11 +82,17 @@ class ManagerTile extends ConsumerWidget {
               width: 52,
               child: Column(
                 children: [
-                  Text('${(oddsPct * 100).round()}%',
-                      style: tk.displayLarge.copyWith(
-                          fontSize: 20, color: _oddsColor(tk))),
-                  Text('pick 1',
-                      style: tk.body.copyWith(fontSize: 10, color: tk.textMuted)),
+                  Text(
+                    '${(oddsPct * 100).round()}%',
+                    style: tk.displayLarge.copyWith(
+                      fontSize: 20,
+                      color: _oddsColor(tk),
+                    ),
+                  ),
+                  Text(
+                    'pick 1',
+                    style: tk.body.copyWith(fontSize: 10, color: tk.textMuted),
+                  ),
                 ],
               ),
             ),
@@ -100,12 +111,16 @@ class ManagerTile extends ConsumerWidget {
     return tk.textPrimary;
   }
 
-  Widget _oddsRow(BuildContext context, DraftConfigController ctrl, DraftTokens tk) {
+  Widget _oddsRow(
+    BuildContext context,
+    DraftConfigController ctrl,
+    DraftTokens tk,
+  ) {
     final label = p.weight > 1.05
         ? 'boosted'
         : p.weight < 0.95
-            ? 'penalized'
-            : 'even';
+        ? 'penalized'
+        : 'even';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -122,32 +137,49 @@ class ManagerTile extends ConsumerWidget {
             value: p.weight.clamp(0.2, 5.0),
             min: 0.2,
             max: 5.0,
-            onChanged: (v) => ctrl.setWeight(p.id, double.parse(v.toStringAsFixed(1))),
+            onChanged: (v) =>
+                ctrl.setWeight(p.id, double.parse(v.toStringAsFixed(1))),
           ),
         ),
         Padding(
           padding: const EdgeInsets.only(left: 6),
-          child: Text('odds ${p.weight.toStringAsFixed(1)}× · $label',
-              style: tk.body.copyWith(fontSize: 11.5, color: _oddsColor(tk))),
+          child: Text(
+            'odds ${p.weight.toStringAsFixed(1)}× · $label',
+            style: tk.body.copyWith(fontSize: 11.5, color: _oddsColor(tk)),
+          ),
         ),
       ],
     );
   }
 
-  Widget _budgetRow(BuildContext context, DraftConfigController ctrl, DraftTokens tk) {
+  Widget _budgetRow(
+    BuildContext context,
+    DraftConfigController ctrl,
+    DraftTokens tk,
+  ) {
     return Row(
       children: [
-        Text('💰 ColemanBucks',
-            style: tk.body.copyWith(fontSize: 12.5, color: tk.textMuted)),
+        Text(
+          '💰 ColemanBucks',
+          style: tk.body.copyWith(fontSize: 12.5, color: tk.textMuted),
+        ),
         const Spacer(),
-        _StepButton(icon: Icons.remove, onTap: () => ctrl.setBudget(p.id, (p.budget - 10).clamp(0, 100000))),
+        _StepButton(
+          icon: Icons.remove,
+          onTap: () => ctrl.setBudget(p.id, (p.budget - 10).clamp(0, 100000)),
+        ),
         SizedBox(
           width: 46,
-          child: Text('${p.budget}',
-              textAlign: TextAlign.center,
-              style: tk.displayLarge.copyWith(fontSize: 20, color: tk.gold)),
+          child: Text(
+            '${p.budget}',
+            textAlign: TextAlign.center,
+            style: tk.displayLarge.copyWith(fontSize: 20, color: tk.gold),
+          ),
         ),
-        _StepButton(icon: Icons.add, onTap: () => ctrl.setBudget(p.id, p.budget + 10)),
+        _StepButton(
+          icon: Icons.add,
+          onTap: () => ctrl.setBudget(p.id, p.budget + 10),
+        ),
         const SizedBox(width: 4),
       ],
     );
@@ -171,11 +203,13 @@ class ManagerTile extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
             TextButton(
-                onPressed: () => _save(ctx, ctrl, controller.text),
-                child: const Text('Save')),
+              onPressed: () => _save(ctx, ctrl, controller.text),
+              child: const Text('Save'),
+            ),
           ],
         );
       },
@@ -183,7 +217,9 @@ class ManagerTile extends ConsumerWidget {
   }
 
   void _save(BuildContext ctx, DraftConfigController ctrl, String name) {
-    if (name.trim().isNotEmpty) ctrl.updateManager(p.copyWith(name: name.trim()));
+    if (name.trim().isNotEmpty) {
+      ctrl.updateManager(p.copyWith(name: name.trim()));
+    }
     Navigator.pop(ctx);
   }
 }

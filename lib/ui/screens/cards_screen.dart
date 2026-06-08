@@ -31,7 +31,7 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
     final order = result?.order ?? const [];
     final picks = [
       for (final id in order)
-        if (byId[id] != null) byId[id]!
+        if (byId[id] != null) byId[id]!,
     ];
     final n = picks.length;
     final allDone = _revealed >= n;
@@ -48,18 +48,23 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
         child: Column(
           children: [
             const SizedBox(height: 8),
-            Text('CARD FLIP DRAFT',
-                style: tk.label.copyWith(color: tk.gold, letterSpacing: 4)),
-            Text(allDone ? 'THE BOARD IS SET' : 'TAP TO REVEAL',
-                style: tk.displayLarge.copyWith(fontSize: 28)),
-            Text('$_revealed of $n picks revealed',
-                style: tk.label.copyWith(fontSize: 11, color: tk.textMuted)),
+            Text(
+              'CARD FLIP DRAFT',
+              style: tk.label.copyWith(color: tk.gold, letterSpacing: 4),
+            ),
+            Text(
+              allDone ? 'THE BOARD IS SET' : 'TAP TO REVEAL',
+              style: tk.displayLarge.copyWith(fontSize: 28),
+            ),
+            Text(
+              '$_revealed of $n picks revealed',
+              style: tk.label.copyWith(fontSize: 11, color: tk.textMuted),
+            ),
             const SizedBox(height: 10),
             Expanded(
               child: GridView.builder(
                 padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 14,
                   crossAxisSpacing: 14,
@@ -78,14 +83,23 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
               child: allDone
-                  ? PrimaryButton('SEE THE BOARD ✓', onPressed: () {
-                      Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-                          builder: (_) => const ResultScreen()));
-                    })
-                  : GhostButton('⤓ REVEAL ALL', onPressed: () {
-                      AppFeedback.of(ref).cardFlip();
-                      setState(() => _revealed = n);
-                    }),
+                  ? PrimaryButton(
+                      'SEE THE BOARD ✓',
+                      onPressed: () {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ResultScreen(),
+                          ),
+                        );
+                      },
+                    )
+                  : GhostButton(
+                      '⤓ REVEAL ALL',
+                      onPressed: () {
+                        AppFeedback.of(ref).cardFlip();
+                        setState(() => _revealed = n);
+                      },
+                    ),
             ),
           ],
         ),
@@ -121,7 +135,9 @@ class _FlipCardState extends State<_FlipCard>
   void initState() {
     super.initState();
     _c = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 450));
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
     if (widget.revealed) _c.value = 1;
   }
 
@@ -178,8 +194,9 @@ class _CardBack extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: isNext ? tk.gold : tk.scoreboardLine,
-            width: isNext ? 2 : 1.2),
+          color: isNext ? tk.gold : tk.scoreboardLine,
+          width: isNext ? 2 : 1.2,
+        ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -195,11 +212,15 @@ class _CardBack extends StatelessWidget {
           children: [
             const Text('🏈', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 8),
-            Text('PICK $pick',
-                style: tk.displayLarge.copyWith(fontSize: 18, color: tk.gold)),
+            Text(
+              'PICK $pick',
+              style: tk.displayLarge.copyWith(fontSize: 18, color: tk.gold),
+            ),
             if (isNext)
-              Text('TAP!',
-                  style: tk.label.copyWith(fontSize: 11, color: tk.textMuted)),
+              Text(
+                'TAP!',
+                style: tk.label.copyWith(fontSize: 11, color: tk.textMuted),
+              ),
           ],
         ),
       ),
@@ -232,22 +253,29 @@ class _CardFace extends StatelessWidget {
           Positioned(
             top: 10,
             left: 12,
-            child: Text(ordinal,
-                style: tk.displayLarge.copyWith(fontSize: 16, color: tk.gold)),
+            child: Text(
+              ordinal,
+              style: tk.displayLarge.copyWith(fontSize: 16, color: tk.gold),
+            ),
           ),
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 JerseyChip(
-                    color: Color(p.colorValue), number: p.number, size: 58),
+                  color: Color(p.colorValue),
+                  number: p.number,
+                  size: 58,
+                ),
                 const SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(p.name.toUpperCase(),
-                        style: tk.displayLarge.copyWith(fontSize: 20)),
+                    child: Text(
+                      p.name.toUpperCase(),
+                      style: tk.displayLarge.copyWith(fontSize: 20),
+                    ),
                   ),
                 ),
               ],

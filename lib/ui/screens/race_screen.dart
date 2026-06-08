@@ -22,7 +22,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _race;
   late final List<Participant> _lineup; // lane order (roster order)
-  final Map<String, double> _finish = {}; // id -> fraction of race when it finishes
+  final Map<String, double> _finish =
+      {}; // id -> fraction of race when it finishes
   late final int _n;
 
   int _countdown = 3; // 3,2,1,0(GO)
@@ -42,7 +43,9 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     final rand = Random(result?.seed ?? 1);
     double prev = 0;
     for (var r = 0; r < order.length; r++) {
-      final base = order.length == 1 ? 1.0 : 0.82 + 0.18 * (r / (order.length - 1));
+      final base = order.length == 1
+          ? 1.0
+          : 0.82 + 0.18 * (r / (order.length - 1));
       var f = base + (rand.nextDouble() - 0.5) * 0.03;
       if (f <= prev + 0.012) f = prev + 0.012;
       _finish[order[r]] = f.clamp(0.0, 1.0);
@@ -50,12 +53,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     }
     if (order.isNotEmpty) _finish[order.last] = 1.0;
 
-    _race = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 5200 + _n * 200),
-    )..addStatusListener((s) {
-        if (s == AnimationStatus.completed) _onFinish();
-      });
+    _race =
+        AnimationController(
+          vsync: this,
+          duration: Duration(milliseconds: 5200 + _n * 200),
+        )..addStatusListener((s) {
+          if (s == AnimationStatus.completed) _onFinish();
+        });
 
     _startCountdown();
   }
@@ -82,7 +86,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     Future.delayed(const Duration(milliseconds: 1100), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(builder: (_) => const ResultScreen()));
+        MaterialPageRoute<void>(builder: (_) => const ResultScreen()),
+      );
     });
   }
 
@@ -142,12 +147,15 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
                       number: runners[i].number,
                       progress: runners[i].progress,
                       stride: runners[i].stride,
-                      leader: true)
+                      leader: true,
+                    )
                   : runners[i],
           ];
 
-          final leader = _lineup.firstWhere((p) => p.id == leaderId,
-              orElse: () => _lineup.first);
+          final leader = _lineup.firstWhere(
+            (p) => p.id == leaderId,
+            orElse: () => _lineup.first,
+          );
           final liveOrder = [..._lineup]
             ..sort((a, b) => prog[b.id]!.compareTo(prog[a.id]!));
 
@@ -197,34 +205,50 @@ class _Scoreboard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                  width: 9,
-                  height: 9,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: tk.led,
-                      boxShadow: [BoxShadow(color: tk.led, blurRadius: 8)])),
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: tk.led,
+                  boxShadow: [BoxShadow(color: tk.led, blurRadius: 8)],
+                ),
+              ),
               const SizedBox(width: 8),
               Text('LIVE', style: tk.label.copyWith(fontSize: 13)),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('LEADER',
-                        style: tk.label.copyWith(fontSize: 10, color: tk.textMuted)),
-                    Text('${leader.name.toUpperCase()} · #${leader.number}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tk.displayLarge.copyWith(fontSize: 20, color: tk.gold)),
+                    Text(
+                      'LEADER',
+                      style: tk.label.copyWith(
+                        fontSize: 10,
+                        color: tk.textMuted,
+                      ),
+                    ),
+                    Text(
+                      '${leader.name.toUpperCase()} · #${leader.number}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: tk.displayLarge.copyWith(
+                        fontSize: 20,
+                        color: tk.gold,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('0:${secs.padLeft(4, '0')}',
-                      style: tk.displayLarge.copyWith(fontSize: 22)),
-                  Text('CLOCK',
-                      style: tk.label.copyWith(fontSize: 9, color: tk.textMuted)),
+                  Text(
+                    '0:${secs.padLeft(4, '0')}',
+                    style: tk.displayLarge.copyWith(fontSize: 22),
+                  ),
+                  Text(
+                    'CLOCK',
+                    style: tk.label.copyWith(fontSize: 9, color: tk.textMuted),
+                  ),
                 ],
               ),
             ],
@@ -259,8 +283,10 @@ class _OrderTicker extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('RUNNING ORDER',
-                  style: tk.label.copyWith(fontSize: 10, color: tk.textMuted)),
+              Text(
+                'RUNNING ORDER',
+                style: tk.label.copyWith(fontSize: 10, color: tk.textMuted),
+              ),
               const SizedBox(height: 8),
               SizedBox(
                 height: 30,
@@ -272,18 +298,24 @@ class _OrderTicker extends StatelessWidget {
                     final p = order[i];
                     final first = i == 0;
                     return Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         color: tk.surfaceElevated,
                         border: Border.all(
-                            color: first ? tk.gold : tk.scoreboardLine),
+                          color: first ? tk.gold : tk.scoreboardLine,
+                        ),
                       ),
-                      child: Text('${i + 1} · ${p.name}',
-                          style: tk.body.copyWith(
-                              fontSize: 12,
-                              color: first ? tk.gold : tk.textPrimary)),
+                      child: Text(
+                        '${i + 1} · ${p.name}',
+                        style: tk.body.copyWith(
+                          fontSize: 12,
+                          color: first ? tk.gold : tk.textPrimary,
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -308,10 +340,13 @@ class _Countdown extends StatelessWidget {
       child: Container(
         color: Colors.black.withValues(alpha: .35),
         alignment: Alignment.center,
-        child: Text(label,
-            style: tk.displayLarge.copyWith(
-                fontSize: value <= 0 ? 96 : 130,
-                color: value <= 0 ? tk.led : tk.gold)),
+        child: Text(
+          label,
+          style: tk.displayLarge.copyWith(
+            fontSize: value <= 0 ? 96 : 130,
+            color: value <= 0 ? tk.led : tk.gold,
+          ),
+        ),
       ),
     );
   }
@@ -331,11 +366,15 @@ class _FinishFlash extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('🏁 TOUCHDOWN',
-                style: tk.label.copyWith(color: tk.gold, letterSpacing: 4)),
+            Text(
+              '🏁 TOUCHDOWN',
+              style: tk.label.copyWith(color: tk.gold, letterSpacing: 4),
+            ),
             const SizedBox(height: 8),
-            Text(winner.name.toUpperCase(),
-                style: tk.displayLarge.copyWith(fontSize: 46)),
+            Text(
+              winner.name.toUpperCase(),
+              style: tk.displayLarge.copyWith(fontSize: 46),
+            ),
             Text('GETS PICK #1', style: tk.title.copyWith(color: tk.gold)),
           ],
         ),

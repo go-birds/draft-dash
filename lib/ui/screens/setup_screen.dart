@@ -67,16 +67,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ref.read(auctionProvider.notifier).start();
         screen = const BiddingScreen();
     }
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => screen));
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
   }
 
   String get _ctaLabel => switch (ref.read(draftConfigProvider).mode) {
-        DraftMode.race => 'START THE RACE 🏈',
-        DraftMode.cards => 'FLIP THE CARDS 🎴',
-        DraftMode.lottery => 'START THE DRAW 🎱',
-        DraftMode.bidding => 'START THE AUCTION 💰',
-      };
+    DraftMode.race => 'START THE RACE 🏈',
+    DraftMode.cards => 'FLIP THE CARDS 🎴',
+    DraftMode.lottery => 'START THE DRAW 🎱',
+    DraftMode.bidding => 'START THE AUCTION 💰',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -97,8 +96,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new,
-                        size: 20, color: tk.textPrimary),
+                    icon: Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 20,
+                      color: tk.textPrimary,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   Expanded(
@@ -109,15 +111,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         isDense: true,
                         border: InputBorder.none,
                         hintText: 'LEAGUE NAME',
-                        hintStyle: tk.displayLarge
-                            .copyWith(fontSize: 24, color: tk.textMuted),
+                        hintStyle: tk.displayLarge.copyWith(
+                          fontSize: 24,
+                          color: tk.textMuted,
+                        ),
                       ),
                       onChanged: (v) =>
                           ref.read(leagueNameProvider.notifier).set(v.trim()),
                     ),
                   ),
-                  Text('${cfg.participants.length} MGRS',
-                      style: tk.label.copyWith(color: tk.textMuted)),
+                  Text(
+                    '${cfg.participants.length} MGRS',
+                    style: tk.label.copyWith(color: tk.textMuted),
+                  ),
                 ],
               ),
             ),
@@ -152,19 +158,30 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   // options row
                   Row(
                     children: [
-                      _sectionLabel(tk, cfg.mode == DraftMode.bidding
-                          ? 'MANAGERS & BUDGETS'
-                          : 'MANAGERS & ODDS'),
+                      _sectionLabel(
+                        tk,
+                        cfg.mode == DraftMode.bidding
+                            ? 'MANAGERS & BUDGETS'
+                            : 'MANAGERS & ODDS',
+                      ),
                       const Spacer(),
                       if (cfg.mode != DraftMode.bidding)
-                        _toggle(tk, '⚖ HANDICAP', cfg.weightingEnabled,
-                            (v) => ctrl.setWeightingEnabled(v)),
+                        _toggle(
+                          tk,
+                          '⚖ HANDICAP',
+                          cfg.weightingEnabled,
+                          (v) => ctrl.setWeightingEnabled(v),
+                        ),
                     ],
                   ),
                   if (cfg.mode != DraftMode.bidding && cfg.weightingEnabled)
-                    _toggle(tk, '🔁 REVERSE (worst picks first)',
-                        cfg.reverseOrder, (v) => ctrl.setReverseOrder(v),
-                        full: true),
+                    _toggle(
+                      tk,
+                      '🔁 REVERSE (worst picks first)',
+                      cfg.reverseOrder,
+                      (v) => ctrl.setReverseOrder(v),
+                      full: true,
+                    ),
 
                   const SizedBox(height: 10),
                   for (final p in cfg.participants)
@@ -180,14 +197,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: GhostButton('＋ ADD MANAGER',
-                            height: 46, onPressed: ctrl.addManager),
+                        child: GhostButton(
+                          '＋ ADD MANAGER',
+                          height: 46,
+                          onPressed: ctrl.addManager,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       SizedBox(
                         width: 150,
                         child: GhostButton(
-                          pinned ? '🔒 RIGGED (${cfg.pins.length})' : '🔒 COMMISH',
+                          pinned
+                              ? '🔒 RIGGED (${cfg.pins.length})'
+                              : '🔒 COMMISH',
                           height: 46,
                           textColor: tk.gold,
                           onPressed: () => _openCommish(context),
@@ -195,14 +217,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       ),
                     ],
                   ),
-                  if (cfg.weightingEnabled && cfg.mode != DraftMode.bidding) ...[
+                  if (cfg.weightingEnabled &&
+                      cfg.mode != DraftMode.bidding) ...[
                     const SizedBox(height: 12),
                     Center(
                       child: TextButton(
                         onPressed: ctrl.resetOdds,
-                        child: Text('Reset odds to even',
-                            style: tk.body
-                                .copyWith(fontSize: 13, color: tk.textMuted)),
+                        child: Text(
+                          'Reset odds to even',
+                          style: tk.body.copyWith(
+                            fontSize: 13,
+                            color: tk.textMuted,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -222,13 +249,17 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Widget _sectionLabel(DraftTokens tk, String s) => Padding(
-        padding: const EdgeInsets.only(top: 16, bottom: 10),
-        child: Text(s, style: tk.label.copyWith(color: tk.gold)),
-      );
+    padding: const EdgeInsets.only(top: 16, bottom: 10),
+    child: Text(s, style: tk.label.copyWith(color: tk.gold)),
+  );
 
-  Widget _toggle(DraftTokens tk, String label, bool value,
-      ValueChanged<bool> onChanged,
-      {bool full = false}) {
+  Widget _toggle(
+    DraftTokens tk,
+    String label,
+    bool value,
+    ValueChanged<bool> onChanged, {
+    bool full = false,
+  }) {
     final row = Row(
       mainAxisSize: full ? MainAxisSize.max : MainAxisSize.min,
       children: [
@@ -258,7 +289,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       backgroundColor: context.tokens.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
       builder: (_) => const _CommissionerSheet(),
     );
   }
@@ -282,22 +314,27 @@ class _CommissionerSheet extends ConsumerWidget {
         children: [
           const SizedBox(height: 12),
           Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                  color: tk.textMuted,
-                  borderRadius: BorderRadius.circular(3))),
+            width: 44,
+            height: 5,
+            decoration: BoxDecoration(
+              color: tk.textMuted,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
             child: Row(
               children: [
-                Text('🔒 COMMISSIONER',
-                    style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold)),
+                Text(
+                  '🔒 COMMISSIONER',
+                  style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold),
+                ),
                 const Spacer(),
                 if (cfg.pins.isNotEmpty)
                   TextButton(
-                      onPressed: ctrl.clearAllPins,
-                      child: const Text('Clear all')),
+                    onPressed: ctrl.clearAllPins,
+                    child: const Text('Clear all'),
+                  ),
               ],
             ),
           ),
@@ -320,49 +357,69 @@ class _CommissionerSheet extends ConsumerWidget {
                 final pinned = pinnedId == null
                     ? null
                     : cfg.participants
-                        .where((p) => p.id == pinnedId)
-                        .cast<dynamic>()
-                        .firstOrNull;
+                          .where((p) => p.id == pinnedId)
+                          .cast<dynamic>()
+                          .firstOrNull;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: tk.surfaceElevated,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: pinned != null ? tk.gold : tk.scoreboardLine),
+                      color: pinned != null ? tk.gold : tk.scoreboardLine,
+                    ),
                   ),
                   child: Row(
                     children: [
                       SizedBox(
                         width: 42,
-                        child: Text('#${slot + 1}',
-                            style: tk.displayLarge
-                                .copyWith(fontSize: 22, color: tk.gold)),
+                        child: Text(
+                          '#${slot + 1}',
+                          style: tk.displayLarge.copyWith(
+                            fontSize: 22,
+                            color: tk.gold,
+                          ),
+                        ),
                       ),
                       Expanded(
                         child: pinned == null
-                            ? Text('Random',
-                                style: tk.body.copyWith(color: tk.textMuted))
+                            ? Text(
+                                'Random',
+                                style: tk.body.copyWith(color: tk.textMuted),
+                              )
                             : Row(
                                 children: [
                                   JerseyChip(
-                                      color: Color(pinned.colorValue),
-                                      number: pinned.number,
-                                      size: 34),
+                                    color: Color(pinned.colorValue),
+                                    number: pinned.number,
+                                    size: 34,
+                                  ),
                                   const SizedBox(width: 10),
-                                  Text(pinned.name, style: tk.title.copyWith(fontSize: 16)),
+                                  Text(
+                                    pinned.name,
+                                    style: tk.title.copyWith(fontSize: 16),
+                                  ),
                                 ],
                               ),
                       ),
                       TextButton(
                         onPressed: () => _assign(context, ref, slot),
-                        child: Text(pinned == null ? 'Assign' : 'Change',
-                            style: TextStyle(color: tk.ice)),
+                        child: Text(
+                          pinned == null ? 'Assign' : 'Change',
+                          style: TextStyle(color: tk.ice),
+                        ),
                       ),
                       if (pinned != null)
                         IconButton(
-                          icon: Icon(Icons.close, size: 18, color: tk.textMuted),
+                          icon: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: tk.textMuted,
+                          ),
                           onPressed: () => ctrl.clearPin(slot),
                         ),
                     ],
@@ -396,7 +453,10 @@ class _CommissionerSheet extends ConsumerWidget {
                 child: Row(
                   children: [
                     JerseyChip(
-                        color: Color(p.colorValue), number: p.number, size: 30),
+                      color: Color(p.colorValue),
+                      number: p.number,
+                      size: 30,
+                    ),
                     const SizedBox(width: 12),
                     Text(p.name, style: tk.body),
                   ],

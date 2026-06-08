@@ -40,8 +40,9 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
         bids: _bids,
         onNext: () {
           if (state.isComplete) {
-            Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-                builder: (_) => const ResultScreen()));
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute<void>(builder: (_) => const ResultScreen()),
+            );
           } else {
             setState(() {
               _bids.clear();
@@ -60,20 +61,28 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
         child: Column(
           children: [
             const SizedBox(height: 8),
-            Text('💰 COLEMANBUCKS AUCTION',
-                style: tk.label.copyWith(color: tk.gold, letterSpacing: 3)),
+            Text(
+              '💰 COLEMANBUCKS AUCTION',
+              style: tk.label.copyWith(color: tk.gold, letterSpacing: 3),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text('PICK ', style: tk.displayLarge.copyWith(fontSize: 28)),
-                Text('#$pickNo',
-                    style: tk.displayLarge.copyWith(fontSize: 28, color: tk.gold)),
-                Text(' ON THE BLOCK',
-                    style: tk.displayLarge.copyWith(fontSize: 28)),
+                Text(
+                  '#$pickNo',
+                  style: tk.displayLarge.copyWith(fontSize: 28, color: tk.gold),
+                ),
+                Text(
+                  ' ON THE BLOCK',
+                  style: tk.displayLarge.copyWith(fontSize: 28),
+                ),
               ],
             ),
-            Text('pass the phone · enter sealed bids',
-                style: tk.label.copyWith(fontSize: 11, color: tk.textMuted)),
+            Text(
+              'pass the phone · enter sealed bids',
+              style: tk.label.copyWith(fontSize: 11, color: tk.textMuted),
+            ),
             const SizedBox(height: 12),
             Expanded(
               child: ListView.builder(
@@ -94,7 +103,9 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
               child: PrimaryButton(
-                allIn ? 'REVEAL BIDS 👀' : 'ALL MANAGERS MUST BID (${_bids.length}/${remaining.length})',
+                allIn
+                    ? 'REVEAL BIDS 👀'
+                    : 'ALL MANAGERS MUST BID (${_bids.length}/${remaining.length})',
                 onPressed: allIn ? _reveal : null,
               ),
             ),
@@ -110,13 +121,18 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
     setState(() => _revealed = true);
   }
 
-  Future<void> _enterBid(BuildContext context, Participant p, int budget) async {
+  Future<void> _enterBid(
+    BuildContext context,
+    Participant p,
+    int budget,
+  ) async {
     final result = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
       backgroundColor: context.tokens.surface,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
       builder: (_) => _BidSheet(p: p, budget: budget),
     );
     if (result != null) {
@@ -161,8 +177,10 @@ class _BidderRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(p.name, style: tk.title.copyWith(fontSize: 17)),
-                  Text('💰 $budget CB',
-                      style: tk.body.copyWith(fontSize: 12, color: tk.textMuted)),
+                  Text(
+                    '💰 $budget CB',
+                    style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
+                  ),
                 ],
               ),
             ),
@@ -171,20 +189,26 @@ class _BidderRow extends StatelessWidget {
                 children: [
                   Icon(Icons.lock, size: 16, color: tk.led),
                   const SizedBox(width: 6),
-                  Text('BID IN',
-                      style: tk.label.copyWith(fontSize: 12, color: tk.led)),
+                  Text(
+                    'BID IN',
+                    style: tk.label.copyWith(fontSize: 12, color: tk.led),
+                  ),
                 ],
               )
             else
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(color: tk.gold),
                 ),
-                child: Text('TAP TO BID',
-                    style: tk.label.copyWith(fontSize: 11, color: tk.gold)),
+                child: Text(
+                  'TAP TO BID',
+                  style: tk.label.copyWith(fontSize: 11, color: tk.gold),
+                ),
               ),
           ],
         ),
@@ -211,32 +235,42 @@ class _BidSheetState extends State<_BidSheet> {
     final max = widget.budget;
     return Padding(
       padding: EdgeInsets.only(
-          left: 22,
-          right: 22,
-          top: 18,
-          bottom: 18 + MediaQuery.of(context).viewInsets.bottom),
+        left: 22,
+        right: 22,
+        top: 18,
+        bottom: 18 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                  color: tk.textMuted,
-                  borderRadius: BorderRadius.circular(3))),
+            width: 44,
+            height: 5,
+            decoration: BoxDecoration(
+              color: tk.textMuted,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
           const SizedBox(height: 16),
           JerseyChip(
-              color: Color(widget.p.colorValue),
-              number: widget.p.number,
-              size: 56),
+            color: Color(widget.p.colorValue),
+            number: widget.p.number,
+            size: 56,
+          ),
           const SizedBox(height: 8),
-          Text(widget.p.name.toUpperCase(),
-              style: tk.displayLarge.copyWith(fontSize: 24)),
-          Text('keep it secret · budget $max CB',
-              style: tk.body.copyWith(fontSize: 12, color: tk.textMuted)),
+          Text(
+            widget.p.name.toUpperCase(),
+            style: tk.displayLarge.copyWith(fontSize: 24),
+          ),
+          Text(
+            'keep it secret · budget $max CB',
+            style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
+          ),
           const SizedBox(height: 18),
-          Text('$_bid',
-              style: tk.displayLarge.copyWith(fontSize: 64, color: tk.gold)),
+          Text(
+            '$_bid',
+            style: tk.displayLarge.copyWith(fontSize: 64, color: tk.gold),
+          ),
           Text('ColemanBucks', style: tk.label.copyWith(color: tk.textMuted)),
           const SizedBox(height: 8),
           Row(
@@ -262,13 +296,17 @@ class _BidSheetState extends State<_BidSheet> {
             children: [
               SizedBox(
                 width: 120,
-                child: GhostButton('PASS (0)',
-                    onPressed: () => Navigator.pop(context, 0)),
+                child: GhostButton(
+                  'PASS (0)',
+                  onPressed: () => Navigator.pop(context, 0),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: PrimaryButton('LOCK IN BID 🔒',
-                    onPressed: () => Navigator.pop(context, _bid)),
+                child: PrimaryButton(
+                  'LOCK IN BID 🔒',
+                  onPressed: () => Navigator.pop(context, _bid),
+                ),
               ),
             ],
           ),
@@ -280,20 +318,19 @@ class _BidSheetState extends State<_BidSheet> {
   void _set(int v) => setState(() => _bid = v.clamp(0, widget.budget));
 
   Widget _step(DraftTokens tk, String label, VoidCallback onTap) => InkWell(
-        onTap: onTap,
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(10),
+    child: Container(
+      width: 42,
+      height: 38,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: tk.surfaceElevated,
         borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 42,
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: tk.surfaceElevated,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(label,
-              style: tk.body.copyWith(fontWeight: FontWeight.w700)),
-        ),
-      );
+      ),
+      child: Text(label, style: tk.body.copyWith(fontWeight: FontWeight.w700)),
+    ),
+  );
 }
 
 class _RevealView extends ConsumerWidget {
@@ -323,9 +360,14 @@ class _RevealView extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 8),
-            Text('SEALED BIDS REVEALED',
-                style: tk.label.copyWith(color: tk.gold, letterSpacing: 3)),
-            Text('PICK #$pickNo', style: tk.displayLarge.copyWith(fontSize: 26)),
+            Text(
+              'SEALED BIDS REVEALED',
+              style: tk.label.copyWith(color: tk.gold, letterSpacing: 3),
+            ),
+            Text(
+              'PICK #$pickNo',
+              style: tk.displayLarge.copyWith(fontSize: 26),
+            ),
             const SizedBox(height: 10),
             // winner banner
             Container(
@@ -339,31 +381,46 @@ class _RevealView extends ConsumerWidget {
               child: Row(
                 children: [
                   JerseyChip(
-                      color: Color(winner.colorValue),
-                      number: winner.number,
-                      size: 54,
-                      highlight: true),
+                    color: Color(winner.colorValue),
+                    number: winner.number,
+                    size: 54,
+                    highlight: true,
+                  ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${winner.name.toUpperCase()} WINS',
-                            style: tk.displayLarge.copyWith(fontSize: 22)),
-                        Text('paid $paid CB · ${state.budgetOf(winnerId)} left',
-                            style: tk.body.copyWith(
-                                fontSize: 12, color: tk.textMuted)),
+                        Text(
+                          '${winner.name.toUpperCase()} WINS',
+                          style: tk.displayLarge.copyWith(fontSize: 22),
+                        ),
+                        Text(
+                          'paid $paid CB · ${state.budgetOf(winnerId)} left',
+                          style: tk.body.copyWith(
+                            fontSize: 12,
+                            color: tk.textMuted,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Column(
                     children: [
-                      Text('$paid',
-                          style: tk.displayLarge
-                              .copyWith(fontSize: 30, color: tk.gold)),
-                      Text('HIGH BID',
-                          style: tk.label
-                              .copyWith(fontSize: 9, color: tk.textMuted)),
+                      Text(
+                        '$paid',
+                        style: tk.displayLarge.copyWith(
+                          fontSize: 30,
+                          color: tk.gold,
+                        ),
+                      ),
+                      Text(
+                        'HIGH BID',
+                        style: tk.label.copyWith(
+                          fontSize: 9,
+                          color: tk.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -374,12 +431,16 @@ class _RevealView extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                 children: [
-                  Text('THE BIDS',
-                      style: tk.label.copyWith(color: tk.gold)),
+                  Text('THE BIDS', style: tk.label.copyWith(color: tk.gold)),
                   const SizedBox(height: 8),
                   for (final e in entries)
-                    _bidRow(tk, byId[e.key]!, e.value, e.key == winnerId,
-                        state.budgetOf(e.key)),
+                    _bidRow(
+                      tk,
+                      byId[e.key]!,
+                      e.value,
+                      e.key == winnerId,
+                      state.budgetOf(e.key),
+                    ),
                 ],
               ),
             ),
@@ -399,7 +460,12 @@ class _RevealView extends ConsumerWidget {
   }
 
   Widget _bidRow(
-      DraftTokens tk, Participant p, int bid, bool winner, int balance) {
+    DraftTokens tk,
+    Participant p,
+    int bid,
+    bool winner,
+    int balance,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -420,18 +486,26 @@ class _RevealView extends ConsumerWidget {
                   children: [
                     Text(p.name, style: tk.title.copyWith(fontSize: 16)),
                     if (winner)
-                      Text('  ★ WINNER',
-                          style: tk.label.copyWith(color: tk.gold, fontSize: 12)),
+                      Text(
+                        '  ★ WINNER',
+                        style: tk.label.copyWith(color: tk.gold, fontSize: 12),
+                      ),
                   ],
                 ),
-                Text(bid == 0 ? 'passed' : 'balance $balance CB',
-                    style: tk.body.copyWith(fontSize: 11.5, color: tk.textMuted)),
+                Text(
+                  bid == 0 ? 'passed' : 'balance $balance CB',
+                  style: tk.body.copyWith(fontSize: 11.5, color: tk.textMuted),
+                ),
               ],
             ),
           ),
-          Text(bid == 0 ? '—' : '$bid',
-              style: tk.displayLarge.copyWith(
-                  fontSize: 26, color: winner ? tk.gold : tk.textMuted)),
+          Text(
+            bid == 0 ? '—' : '$bid',
+            style: tk.displayLarge.copyWith(
+              fontSize: 26,
+              color: winner ? tk.gold : tk.textMuted,
+            ),
+          ),
         ],
       ),
     );

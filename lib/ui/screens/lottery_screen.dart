@@ -28,8 +28,9 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
   void initState() {
     super.initState();
     _tumble = AnimationController(
-        vsync: this, duration: const Duration(seconds: 4))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
   }
 
   @override
@@ -48,7 +49,7 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
     final order = result?.order ?? const [];
     final picks = [
       for (final id in order)
-        if (byId[id] != null) byId[id]!
+        if (byId[id] != null) byId[id]!,
     ];
     final n = picks.length;
     final drawnList = picks.take(_drawn).toList();
@@ -68,15 +69,20 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
         child: Column(
           children: [
             const SizedBox(height: 8),
-            Text('DRAFT LOTTERY',
-                style: tk.label.copyWith(color: tk.gold, letterSpacing: 4)),
-            Text(allDone ? 'THE BOARD IS SET' : 'THE DRAW',
-                style: tk.displayLarge.copyWith(fontSize: 28)),
             Text(
-                allDone
-                    ? 'all $n picks drawn'
-                    : 'weighted by odds · pick ${_drawn + 1} on the clock',
-                style: tk.label.copyWith(fontSize: 11, color: tk.textMuted)),
+              'DRAFT LOTTERY',
+              style: tk.label.copyWith(color: tk.gold, letterSpacing: 4),
+            ),
+            Text(
+              allDone ? 'THE BOARD IS SET' : 'THE DRAW',
+              style: tk.displayLarge.copyWith(fontSize: 28),
+            ),
+            Text(
+              allDone
+                  ? 'all $n picks drawn'
+                  : 'weighted by odds · pick ${_drawn + 1} on the clock',
+              style: tk.label.copyWith(fontSize: 11, color: tk.textMuted),
+            ),
             const SizedBox(height: 6),
 
             // machine
@@ -90,7 +96,10 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
                     child: CustomPaint(
                       painter: _MachinePainter(tk: tk),
                       child: _BallField(
-                          t: _tumble.value, balls: remaining, tk: tk),
+                        t: _tumble.value,
+                        balls: remaining,
+                        tk: tk,
+                      ),
                     ),
                   ),
                 ),
@@ -102,30 +111,43 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
               height: 84,
               child: justDrawn == null
                   ? Center(
-                      child: Text('Tap draw to start the lottery',
-                          style: tk.body.copyWith(color: tk.textMuted)))
+                      child: Text(
+                        'Tap draw to start the lottery',
+                        style: tk.body.copyWith(color: tk.textMuted),
+                      ),
+                    )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         LotteryBall(
-                            color: Color(justDrawn.colorValue),
-                            number: justDrawn.number,
-                            size: 60,
-                            highlight: true),
+                          color: Color(justDrawn.colorValue),
+                          number: justDrawn.number,
+                          size: 60,
+                          highlight: true,
+                        ),
                         const SizedBox(width: 14),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('PICK $_drawn',
-                                style: tk.label
-                                    .copyWith(fontSize: 11, color: tk.textMuted)),
-                            Text(justDrawn.name.toUpperCase(),
-                                style: tk.displayLarge.copyWith(fontSize: 28)),
                             Text(
-                                '${((odds[justDrawn.id] ?? 0) * 100).round()}% odds · on the board',
-                                style: tk.body.copyWith(
-                                    fontSize: 12, color: tk.success)),
+                              'PICK $_drawn',
+                              style: tk.label.copyWith(
+                                fontSize: 11,
+                                color: tk.textMuted,
+                              ),
+                            ),
+                            Text(
+                              justDrawn.name.toUpperCase(),
+                              style: tk.displayLarge.copyWith(fontSize: 28),
+                            ),
+                            Text(
+                              '${((odds[justDrawn.id] ?? 0) * 100).round()}% odds · on the board',
+                              style: tk.body.copyWith(
+                                fontSize: 12,
+                                color: tk.success,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -143,18 +165,24 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
                 itemBuilder: (_, i) {
                   final p = drawnList[i];
                   return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
                       color: tk.surfaceElevated,
                       border: Border.all(
-                          color: i == 0 ? tk.gold : tk.scoreboardLine),
+                        color: i == 0 ? tk.gold : tk.scoreboardLine,
+                      ),
                     ),
-                    child: Text('${i + 1} ${p.name}',
-                        style: tk.body.copyWith(
-                            fontSize: 12,
-                            color: i == 0 ? tk.gold : tk.textPrimary)),
+                    child: Text(
+                      '${i + 1} ${p.name}',
+                      style: tk.body.copyWith(
+                        fontSize: 12,
+                        color: i == 0 ? tk.gold : tk.textPrimary,
+                      ),
+                    ),
                   );
                 },
               ),
@@ -163,12 +191,20 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
               child: allDone
-                  ? PrimaryButton('SEE THE BOARD ✓', onPressed: () {
-                      Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-                          builder: (_) => const ResultScreen()));
-                    })
-                  : PrimaryButton('DRAW PICK ${_drawn + 1} 🎱',
-                      onPressed: drawNext),
+                  ? PrimaryButton(
+                      'SEE THE BOARD ✓',
+                      onPressed: () {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ResultScreen(),
+                          ),
+                        );
+                      },
+                    )
+                  : PrimaryButton(
+                      'DRAW PICK ${_drawn + 1} 🎱',
+                      onPressed: drawNext,
+                    ),
             ),
           ],
         ),
@@ -196,9 +232,13 @@ class _MachinePainter extends CustomPainter {
       ..close();
     canvas.drawPath(path, pedestal);
     canvas.drawRect(
-        Rect.fromCenter(
-            center: Offset(c.dx, size.height - 4), width: 44, height: 5),
-        Paint()..color = tk.whistle.withValues(alpha: .85));
+      Rect.fromCenter(
+        center: Offset(c.dx, size.height - 4),
+        width: 44,
+        height: 5,
+      ),
+      Paint()..color = tk.whistle.withValues(alpha: .85),
+    );
 
     // glass sphere
     final glass = Paint()
@@ -214,28 +254,34 @@ class _MachinePainter extends CustomPainter {
       ).createShader(Rect.fromCircle(center: c, radius: r));
     canvas.drawCircle(c, r, glass);
     canvas.drawCircle(
-        c,
-        r,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..color = const Color(0xFFBED7FF).withValues(alpha: .35));
+      c,
+      r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0xFFBED7FF).withValues(alpha: .35),
+    );
 
     // top extraction tube
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          Rect.fromCenter(
-              center: Offset(c.dx, c.dy - r - 4), width: 40, height: 70),
-          const Radius.circular(10)),
+        Rect.fromCenter(
+          center: Offset(c.dx, c.dy - r - 4),
+          width: 40,
+          height: 70,
+        ),
+        const Radius.circular(10),
+      ),
       Paint()..color = Colors.white.withValues(alpha: .12),
     );
 
     // glass highlight
     canvas.drawOval(
       Rect.fromCenter(
-          center: Offset(c.dx - r * 0.35, c.dy - r * 0.45),
-          width: r * 0.7,
-          height: r * 0.45),
+        center: Offset(c.dx - r * 0.35, c.dy - r * 0.45),
+        width: r * 0.7,
+        height: r * 0.45,
+      ),
       Paint()
         ..color = Colors.white.withValues(alpha: .25)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
@@ -270,7 +316,13 @@ class _BallField extends StatelessWidget {
   }
 
   Widget _positioned(
-      int i, int n, double cx, double cy, double r, Participant p) {
+    int i,
+    int n,
+    double cx,
+    double cy,
+    double r,
+    Participant p,
+  ) {
     // distribute around a jittering ring, biased toward the lower half
     final baseAngle = (i / max(n, 1)) * 2 * pi;
     final wob = sin(t * 2 * pi + i * 1.7);

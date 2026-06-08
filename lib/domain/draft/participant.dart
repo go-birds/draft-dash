@@ -47,22 +47,22 @@ class Participant {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'number': number,
-        'color': colorValue,
-        'weight': weight,
-        'budget': budget,
-      };
+    'id': id,
+    'name': name,
+    'number': number,
+    'color': colorValue,
+    'weight': weight,
+    'budget': budget,
+  };
 
   static Participant fromJson(Map<String, dynamic> j) => Participant(
-        id: j['id'] as String,
-        name: j['name'] as String,
-        number: (j['number'] ?? '') as String,
-        colorValue: (j['color'] as num).toInt(),
-        weight: (j['weight'] as num?)?.toDouble() ?? 1.0,
-        budget: (j['budget'] as num?)?.toInt() ?? 100,
-      );
+    id: j['id'] as String,
+    name: j['name'] as String,
+    number: (j['number'] ?? '') as String,
+    colorValue: (j['color'] as num).toInt(),
+    weight: (j['weight'] as num?)?.toDouble() ?? 1.0,
+    budget: (j['budget'] as num?)?.toInt() ?? 100,
+  );
 
   @override
   bool operator ==(Object other) =>

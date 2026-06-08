@@ -19,13 +19,13 @@ import 'ui/theme/app_tokens.dart';
 const _which = String.fromEnvironment('PREVIEW', defaultValue: 'race');
 
 Future<void> main() => ProgenitorBootstrap.runWithStorage<StorageService>(
-      sentryDsn: const String.fromEnvironment('SENTRY_DSN'),
-      openStorage: StorageService.open,
-      app: (s) => ProviderScope(
-        overrides: [storageProvider.overrideWithValue(s)],
-        child: const _PreviewApp(),
-      ),
-    );
+  sentryDsn: const String.fromEnvironment('SENTRY_DSN'),
+  openStorage: StorageService.open,
+  app: (s) => ProviderScope(
+    overrides: [storageProvider.overrideWithValue(s)],
+    child: const _PreviewApp(),
+  ),
+);
 
 class _PreviewApp extends ConsumerStatefulWidget {
   const _PreviewApp();
@@ -46,7 +46,14 @@ class _PreviewAppState extends ConsumerState<_PreviewApp> {
     final c = ref.read(draftConfigProvider.notifier);
     c.clearLeague();
     for (final n in const [
-      'Coleman', 'Dana', 'Marcus', 'Priya', 'Sam', 'Riley', 'Alex', 'Jordan'
+      'Coleman',
+      'Dana',
+      'Marcus',
+      'Priya',
+      'Sam',
+      'Riley',
+      'Alex',
+      'Jordan',
     ]) {
       c.addManager(n);
     }
@@ -72,13 +79,13 @@ class _PreviewAppState extends ConsumerState<_PreviewApp> {
   }
 
   Widget _screen() => switch (_which) {
-        'setup' => const SetupScreen(),
-        'cards' => const CardsScreen(),
-        'lottery' => const LotteryScreen(),
-        'bidding' => const BiddingScreen(),
-        'result' => const ResultScreen(),
-        _ => const RaceScreen(),
-      };
+    'setup' => const SetupScreen(),
+    'cards' => const CardsScreen(),
+    'lottery' => const LotteryScreen(),
+    'bidding' => const BiddingScreen(),
+    'result' => const ResultScreen(),
+    _ => const RaceScreen(),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -87,9 +94,7 @@ class _PreviewAppState extends ConsumerState<_PreviewApp> {
       theme: theme,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: _ready
-            ? _screen()
-            : const ColoredBox(color: Color(0xFF0B0F14)),
+        home: _ready ? _screen() : const ColoredBox(color: Color(0xFF0B0F14)),
       ),
     );
   }

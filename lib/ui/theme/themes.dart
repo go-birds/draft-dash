@@ -30,23 +30,38 @@ abstract class AppThemes {
   ];
 
   // ── typography ───────────────────────────────────────────────────────
-  static TextStyle _display(Color c) =>
-      TextStyle(fontFamily: 'Anton', fontSize: 34, height: 1.0, letterSpacing: .5, color: c);
+  static TextStyle _display(Color c) => TextStyle(
+    fontFamily: 'Anton',
+    fontSize: 34,
+    height: 1.0,
+    letterSpacing: .5,
+    color: c,
+  );
   static TextStyle _title(Color c) => TextStyle(
-      fontFamily: 'Inter', fontSize: 20, fontWeight: FontWeight.w700, color: c);
+    fontFamily: 'Inter',
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: c,
+  );
   static TextStyle _body(Color c) => TextStyle(
-      fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w400, color: c);
+    fontFamily: 'Inter',
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: c,
+  );
   static TextStyle _label(Color c) => TextStyle(
-      fontFamily: 'Inter',
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      letterSpacing: 1.5,
-      color: c);
+    fontFamily: 'Inter',
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.5,
+    color: c,
+  );
   static TextStyle _mono(Color c) => TextStyle(
-      fontFamily: 'JetBrainsMono',
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
-      color: c);
+    fontFamily: 'JetBrainsMono',
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: c,
+  );
 
   // ─── Stadium (default) ─────────────────────────────────────────────────
   static final stadium = AppTheme<DraftTokens>(

@@ -38,7 +38,10 @@ class DraftEngine {
     });
 
     var feed = 0;
-    final flow = [for (final id in baseOrder) if (!pinnedIds.contains(id)) id];
+    final flow = [
+      for (final id in baseOrder)
+        if (!pinnedIds.contains(id)) id,
+    ];
     for (var i = 0; i < n; i++) {
       if (result[i] == null) {
         result[i] = flow[feed++];
@@ -46,8 +49,10 @@ class DraftEngine {
     }
 
     final order = [for (final id in result) id!];
-    assert(_isPermutation(order, config),
-        'DraftEngine produced an invalid ordering');
+    assert(
+      _isPermutation(order, config),
+      'DraftEngine produced an invalid ordering',
+    );
 
     return DraftResult(
       order: order,
@@ -89,7 +94,7 @@ class DraftEngine {
     final pinnedElsewhere = config.pins.values.toSet();
     final pool = [
       for (final p in config.participants)
-        if (!pinnedElsewhere.contains(p.id)) p
+        if (!pinnedElsewhere.contains(p.id)) p,
     ];
     if (pool.isEmpty) return result;
 
@@ -120,6 +125,10 @@ DraftResult generateInIsolate((DraftConfig, int) args) =>
 
 /// Convenience for callers that don't care about the mode field.
 extension DraftModeResult on DraftMode {
-  DraftResult emptyResult() =>
-      DraftResult(order: const [], seed: 0, mode: this, createdAt: DateTime.now());
+  DraftResult emptyResult() => DraftResult(
+    order: const [],
+    seed: 0,
+    mode: this,
+    createdAt: DateTime.now(),
+  );
 }

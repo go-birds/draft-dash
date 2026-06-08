@@ -18,8 +18,9 @@ class HomeScreen extends ConsumerWidget {
     final league = ref.watch(leagueNameProvider);
     final hasLeague = cfg.participants.isNotEmpty;
 
-    void open(Widget screen) =>
-        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+    void open(Widget screen) => Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => screen));
 
     return Scaffold(
       backgroundColor: tk.background,
@@ -47,18 +48,33 @@ class HomeScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const Spacer(flex: 3),
-                Text('FANTASY FOOTBALL',
-                    style: tk.label.copyWith(color: tk.gold, letterSpacing: 5)),
+                Text(
+                  'FANTASY FOOTBALL',
+                  style: tk.label.copyWith(color: tk.gold, letterSpacing: 5),
+                ),
                 const SizedBox(height: 6),
-                Text('DRAFT',
-                    style: tk.displayLarge
-                        .copyWith(fontSize: 76, height: .86, letterSpacing: 1)),
-                Text('RACE',
-                    style: tk.displayLarge.copyWith(
-                        fontSize: 76, height: .86, letterSpacing: 1, color: tk.gold)),
+                Text(
+                  'DRAFT',
+                  style: tk.displayLarge.copyWith(
+                    fontSize: 76,
+                    height: .86,
+                    letterSpacing: 1,
+                  ),
+                ),
+                Text(
+                  'RACE',
+                  style: tk.displayLarge.copyWith(
+                    fontSize: 76,
+                    height: .86,
+                    letterSpacing: 1,
+                    color: tk.gold,
+                  ),
+                ),
                 const SizedBox(height: 14),
-                Text('SETTLE IT ON THE FIELD',
-                    style: tk.label.copyWith(letterSpacing: 3)),
+                Text(
+                  'SETTLE IT ON THE FIELD',
+                  style: tk.label.copyWith(letterSpacing: 3),
+                ),
                 const Spacer(flex: 2),
                 const Text('🏈', style: TextStyle(fontSize: 92)),
                 const Spacer(flex: 3),
@@ -82,13 +98,17 @@ class HomeScreen extends ConsumerWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: GhostButton('🏆  HISTORY',
-                                onPressed: () => open(const HistoryScreen())),
+                            child: GhostButton(
+                              '🏆  HISTORY',
+                              onPressed: () => open(const HistoryScreen()),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: GhostButton('⚙  SETTINGS',
-                                onPressed: () => open(const SettingsScreen())),
+                            child: GhostButton(
+                              '⚙  SETTINGS',
+                              onPressed: () => open(const SettingsScreen()),
+                            ),
                           ),
                         ],
                       ),
@@ -145,7 +165,10 @@ class _SkyAndTurf extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   for (var i = 0; i < 5; i++)
-                    Container(width: 3, color: tk.yardLine.withValues(alpha: .55)),
+                    Container(
+                      width: 3,
+                      color: tk.yardLine.withValues(alpha: .55),
+                    ),
                 ],
               ),
             ),
@@ -192,8 +215,9 @@ class _LightBank extends StatelessWidget {
                 color: const Color(0xFFDFEEFF),
                 boxShadow: [
                   BoxShadow(
-                      color: const Color(0xFFCFE4FF).withValues(alpha: .9),
-                      blurRadius: 10),
+                    color: const Color(0xFFCFE4FF).withValues(alpha: .9),
+                    blurRadius: 10,
+                  ),
                 ],
               ),
             ),

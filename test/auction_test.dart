@@ -5,15 +5,15 @@ import 'package:draft_race/domain/draft/participant.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 List<Participant> roster(List<int> budgets) => [
-      for (var i = 0; i < budgets.length; i++)
-        Participant(
-          id: 'p$i',
-          name: 'P$i',
-          number: '${i + 1}',
-          colorValue: 0xFF000000,
-          budget: budgets[i],
-        ),
-    ];
+  for (var i = 0; i < budgets.length; i++)
+    Participant(
+      id: 'p$i',
+      name: 'P$i',
+      number: '${i + 1}',
+      colorValue: 0xFF000000,
+      budget: budgets[i],
+    ),
+];
 
 void main() {
   group('AuctionState', () {
@@ -50,7 +50,7 @@ void main() {
         // Everyone bids a shrinking amount; deterministic via clamp.
         final bids = {
           for (final p in a.remainingManagers)
-            p.id: (a.budgetOf(p.id) - round * 5).clamp(0, a.budgetOf(p.id))
+            p.id: (a.budgetOf(p.id) - round * 5).clamp(0, a.budgetOf(p.id)),
         };
         a = a.resolveRound(bids, rng: rng);
         round++;
@@ -62,8 +62,11 @@ void main() {
 
     test('commissioner breaks ties in their favor', () {
       var a = AuctionState.initial(roster([100, 100, 100]));
-      a = a.resolveRound({'p0': 50, 'p1': 50, 'p2': 50},
-          commissionerWinner: 'p2');
+      a = a.resolveRound({
+        'p0': 50,
+        'p1': 50,
+        'p2': 50,
+      }, commissionerWinner: 'p2');
       expect(a.assignedPicks.first, 'p2');
     });
 

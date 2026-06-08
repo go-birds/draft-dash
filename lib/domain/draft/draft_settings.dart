@@ -16,22 +16,21 @@ class DraftSettings {
     bool? soundEnabled,
     bool? hapticsEnabled,
     DraftMode? defaultMode,
-  }) =>
-      DraftSettings(
-        soundEnabled: soundEnabled ?? this.soundEnabled,
-        hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
-        defaultMode: defaultMode ?? this.defaultMode,
-      );
+  }) => DraftSettings(
+    soundEnabled: soundEnabled ?? this.soundEnabled,
+    hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+    defaultMode: defaultMode ?? this.defaultMode,
+  );
 
   Map<String, dynamic> toJson() => {
-        'sound': soundEnabled,
-        'haptics': hapticsEnabled,
-        'defaultMode': defaultMode.code,
-      };
+    'sound': soundEnabled,
+    'haptics': hapticsEnabled,
+    'defaultMode': defaultMode.code,
+  };
 
   static DraftSettings fromJson(Map<String, dynamic> j) => DraftSettings(
-        soundEnabled: (j['sound'] as bool?) ?? true,
-        hapticsEnabled: (j['haptics'] as bool?) ?? true,
-        defaultMode: DraftMode.fromCode((j['defaultMode'] ?? 'race') as String),
-      );
+    soundEnabled: (j['sound'] as bool?) ?? true,
+    hapticsEnabled: (j['haptics'] as bool?) ?? true,
+    defaultMode: DraftMode.fromCode((j['defaultMode'] ?? 'race') as String),
+  );
 }

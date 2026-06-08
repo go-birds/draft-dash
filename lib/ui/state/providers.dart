@@ -17,11 +17,32 @@ import '../theme/themes.dart';
 
 /// Default jersey colors/numbers assigned to new managers, in roster order.
 const kJerseyPalette = <int>[
-  0xFF3A86FF, 0xFFE63946, 0xFFFFB703, 0xFF06D6A0, 0xFF9B5DE5, 0xFFFB5607,
-  0xFF34C759, 0xFFFF5DA2, 0xFF4CC9F0, 0xFFB5179E, 0xFF8AC926, 0xFFF15BB5,
+  0xFF3A86FF,
+  0xFFE63946,
+  0xFFFFB703,
+  0xFF06D6A0,
+  0xFF9B5DE5,
+  0xFFFB5607,
+  0xFF34C759,
+  0xFFFF5DA2,
+  0xFF4CC9F0,
+  0xFFB5179E,
+  0xFF8AC926,
+  0xFFF15BB5,
 ];
 const kJerseyNumbers = <String>[
-  '07', '23', '12', '05', '88', '44', '31', '19', '80', '22', '11', '99',
+  '07',
+  '23',
+  '12',
+  '05',
+  '88',
+  '44',
+  '31',
+  '19',
+  '80',
+  '22',
+  '11',
+  '99',
 ];
 
 String _newId() =>
@@ -32,7 +53,8 @@ int _freshSeed() =>
 
 // ─── storage ──────────────────────────────────────────────────────────────
 final storageProvider = Provider<StorageService>(
-  (_) => throw UnimplementedError('storageProvider must be overridden in main()'),
+  (_) =>
+      throw UnimplementedError('storageProvider must be overridden in main()'),
 );
 
 // ─── theme ──────────────────────────────────────────────────────────────────
@@ -49,8 +71,9 @@ class ThemeController extends Notifier<AppTheme<DraftTokens>> {
   }
 }
 
-final themeProvider =
-    NotifierProvider<ThemeController, AppTheme<DraftTokens>>(ThemeController.new);
+final themeProvider = NotifierProvider<ThemeController, AppTheme<DraftTokens>>(
+  ThemeController.new,
+);
 
 // ─── settings ─────────────────────────────────────────────────────────────
 class SettingsController extends Notifier<DraftSettings> {
@@ -75,8 +98,9 @@ class SettingsController extends Notifier<DraftSettings> {
   }
 }
 
-final settingsProvider =
-    NotifierProvider<SettingsController, DraftSettings>(SettingsController.new);
+final settingsProvider = NotifierProvider<SettingsController, DraftSettings>(
+  SettingsController.new,
+);
 
 // ─── league name ────────────────────────────────────────────────────────────
 class LeagueNameController extends Notifier<String> {
@@ -89,8 +113,9 @@ class LeagueNameController extends Notifier<String> {
   }
 }
 
-final leagueNameProvider =
-    NotifierProvider<LeagueNameController, String>(LeagueNameController.new);
+final leagueNameProvider = NotifierProvider<LeagueNameController, String>(
+  LeagueNameController.new,
+);
 
 // ─── draft config (the league roster + setup) ────────────────────────────────
 class DraftConfigController extends Notifier<DraftConfig> {
@@ -123,21 +148,26 @@ class DraftConfigController extends Notifier<DraftConfig> {
   }
 
   void removeManager(String id) {
-    final next = [for (final p in _ps) if (p.id != id) p];
+    final next = [
+      for (final p in _ps)
+        if (p.id != id) p,
+    ];
     final pins = {
       for (final e in state.pins.entries)
-        if (e.value != id) e.key: e.value
+        if (e.value != id) e.key: e.value,
     };
     _set(state.copyWith(participants: next, pins: pins));
   }
 
   void updateManager(Participant updated) {
-    _set(state.copyWith(
-      participants: [
-        for (final p in _ps)
-          if (p.id == updated.id) updated else p
-      ],
-    ));
+    _set(
+      state.copyWith(
+        participants: [
+          for (final p in _ps)
+            if (p.id == updated.id) updated else p,
+        ],
+      ),
+    );
   }
 
   void setWeight(String id, double w) =>
@@ -158,16 +188,18 @@ class DraftConfigController extends Notifier<DraftConfig> {
   void setWeightingEnabled(bool v) => _set(state.copyWith(weightingEnabled: v));
   void setReverseOrder(bool v) => _set(state.copyWith(reverseOrder: v));
 
-  void resetOdds() => _set(state.copyWith(
-        participants: [for (final p in _ps) p.copyWith(weight: 1.0)],
-      ));
+  void resetOdds() => _set(
+    state.copyWith(
+      participants: [for (final p in _ps) p.copyWith(weight: 1.0)],
+    ),
+  );
 
   // commissioner pins ───────────────────────────────────────────
   void setPin(int slot, String id) {
     // A manager can hold only one pin; clear any prior slot for this id.
     final pins = {
       for (final e in state.pins.entries)
-        if (e.value != id && e.key != slot) e.key: e.value
+        if (e.value != id && e.key != slot) e.key: e.value,
     };
     pins[slot] = id;
     _set(state.copyWith(pins: pins));
@@ -187,11 +219,13 @@ class DraftConfigController extends Notifier<DraftConfig> {
 
 final draftConfigProvider =
     NotifierProvider<DraftConfigController, DraftConfig>(
-        DraftConfigController.new);
+      DraftConfigController.new,
+    );
 
 /// Live odds (chance at pick #1) for the current config, for the setup UI.
 final oddsProvider = Provider<Map<String, double>>(
-    (ref) => DraftEngine.relativeOdds(ref.watch(draftConfigProvider)));
+  (ref) => DraftEngine.relativeOdds(ref.watch(draftConfigProvider)),
+);
 
 // ─── draft result (the produced order; shared by all modes) ───────────────────
 class DraftController extends Notifier<DraftResult?> {
@@ -220,14 +254,21 @@ class DraftController extends Notifier<DraftResult?> {
     final s = state;
     if (s == null) return;
     final name = ref.read(leagueNameProvider);
+    final cfg = ref.read(draftConfigProvider);
     await ref
         .read(historyProvider.notifier)
-        .add(s.copyWith(leagueName: name.isEmpty ? null : name));
+        .add(
+          s.copyWith(
+            leagueName: name.isEmpty ? null : name,
+            rosterSnapshot: cfg.participants,
+          ),
+        );
   }
 }
 
-final draftControllerProvider =
-    NotifierProvider<DraftController, DraftResult?>(DraftController.new);
+final draftControllerProvider = NotifierProvider<DraftController, DraftResult?>(
+  DraftController.new,
+);
 
 // ─── auction (live bidding state) ─────────────────────────────────────────────
 class AuctionController extends Notifier<AuctionState?> {
@@ -244,8 +285,11 @@ class AuctionController extends Notifier<AuctionState?> {
   bool resolveRound(Map<String, int> bids, {String? commissionerWinner}) {
     final s = state;
     if (s == null || s.isComplete) return s?.isComplete ?? false;
-    final next = s.resolveRound(bids,
-        commissionerWinner: commissionerWinner, rng: Random());
+    final next = s.resolveRound(
+      bids,
+      commissionerWinner: commissionerWinner,
+      rng: Random(),
+    );
     state = next;
     if (next.isComplete) {
       ref
@@ -259,8 +303,9 @@ class AuctionController extends Notifier<AuctionState?> {
   void cancel() => state = null;
 }
 
-final auctionProvider =
-    NotifierProvider<AuctionController, AuctionState?>(AuctionController.new);
+final auctionProvider = NotifierProvider<AuctionController, AuctionState?>(
+  AuctionController.new,
+);
 
 // ─── history ──────────────────────────────────────────────────────────────────
 class HistoryController extends Notifier<List<DraftResult>> {
@@ -279,6 +324,6 @@ class HistoryController extends Notifier<List<DraftResult>> {
   }
 }
 
-final historyProvider =
-    NotifierProvider<HistoryController, List<DraftResult>>(
-        HistoryController.new);
+final historyProvider = NotifierProvider<HistoryController, List<DraftResult>>(
+  HistoryController.new,
+);

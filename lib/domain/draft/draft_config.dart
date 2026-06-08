@@ -44,24 +44,24 @@ class DraftConfig {
   }
 
   Map<String, dynamic> toJson() => {
-        'participants': [for (final p in participants) p.toJson()],
-        'mode': mode.code,
-        'weightingEnabled': weightingEnabled,
-        'reverseOrder': reverseOrder,
-        'pins': {for (final e in pins.entries) e.key.toString(): e.value},
-      };
+    'participants': [for (final p in participants) p.toJson()],
+    'mode': mode.code,
+    'weightingEnabled': weightingEnabled,
+    'reverseOrder': reverseOrder,
+    'pins': {for (final e in pins.entries) e.key.toString(): e.value},
+  };
 
   static DraftConfig fromJson(Map<String, dynamic> j) => DraftConfig(
-        participants: [
-          for (final p in (j['participants'] as List))
-            Participant.fromJson(Map<String, dynamic>.from(p as Map))
-        ],
-        mode: DraftMode.fromCode((j['mode'] ?? 'race') as String),
-        weightingEnabled: (j['weightingEnabled'] as bool?) ?? true,
-        reverseOrder: (j['reverseOrder'] as bool?) ?? false,
-        pins: {
-          for (final e in ((j['pins'] ?? {}) as Map).entries)
-            int.parse(e.key as String): e.value as String
-        },
-      );
+    participants: [
+      for (final p in (j['participants'] as List))
+        Participant.fromJson(Map<String, dynamic>.from(p as Map)),
+    ],
+    mode: DraftMode.fromCode((j['mode'] ?? 'race') as String),
+    weightingEnabled: (j['weightingEnabled'] as bool?) ?? true,
+    reverseOrder: (j['reverseOrder'] as bool?) ?? false,
+    pins: {
+      for (final e in ((j['pins'] ?? {}) as Map).entries)
+        int.parse(e.key as String): e.value as String,
+    },
+  );
 }

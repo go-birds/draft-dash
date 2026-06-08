@@ -63,7 +63,7 @@ class StorageService extends ProgenitorStorage {
   List<DraftResult> loadHistory() {
     return [
       for (final j in getJsonList(_kHistory))
-        if (_tryResult(j) != null) _tryResult(j)!
+        if (_tryResult(j) != null) _tryResult(j)!,
     ];
   }
 

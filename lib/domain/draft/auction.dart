@@ -23,10 +23,10 @@ class AuctionState {
   });
 
   factory AuctionState.initial(List<Participant> participants) => AuctionState(
-        participants: participants,
-        remainingBudgets: {for (final p in participants) p.id: p.budget},
-        assignedPicks: const [],
-      );
+    participants: participants,
+    remainingBudgets: {for (final p in participants) p.id: p.budget},
+    assignedPicks: const [],
+  );
 
   /// 0-based index of the pick currently up for bid.
   int get currentPick => assignedPicks.length;
@@ -36,7 +36,10 @@ class AuctionState {
   /// Managers who have not yet won a pick (eligible to bid this round).
   List<Participant> get remainingManagers {
     final won = assignedPicks.toSet();
-    return [for (final p in participants) if (!won.contains(p.id)) p];
+    return [
+      for (final p in participants)
+        if (!won.contains(p.id)) p,
+    ];
   }
 
   int budgetOf(String id) => remainingBudgets[id] ?? 0;
@@ -85,7 +88,7 @@ class AuctionState {
     } else {
       final top = [
         for (final e in clean.entries)
-          if (e.value == highBid) e.key
+          if (e.value == highBid) e.key,
       ];
       winner = _breakTie(top, commissionerWinner, rng);
     }
@@ -102,7 +105,10 @@ class AuctionState {
   }
 
   static String _breakTie(
-      List<String> tied, String? commissionerWinner, Random? rng) {
+    List<String> tied,
+    String? commissionerWinner,
+    Random? rng,
+  ) {
     if (tied.length == 1) return tied.first;
     if (commissionerWinner != null && tied.contains(commissionerWinner)) {
       return commissionerWinner;
@@ -113,9 +119,9 @@ class AuctionState {
 
   /// Once complete, the finished draft order.
   DraftResult toResult({required int seed}) => DraftResult(
-        order: List<String>.from(assignedPicks),
-        seed: seed,
-        mode: DraftMode.bidding,
-        createdAt: DateTime.now(),
-      );
+    order: List<String>.from(assignedPicks),
+    seed: seed,
+    mode: DraftMode.bidding,
+    createdAt: DateTime.now(),
+  );
 }

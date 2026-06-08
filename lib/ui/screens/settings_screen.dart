@@ -53,8 +53,10 @@ class SettingsScreen extends ConsumerWidget {
             activeThumbColor: tk.gold,
             contentPadding: EdgeInsets.zero,
             title: Text('Sound effects', style: tk.body),
-            subtitle: Text('Whistle, crowd, air horn',
-                style: tk.body.copyWith(fontSize: 12, color: tk.textMuted)),
+            subtitle: Text(
+              'Whistle, crowd, air horn',
+              style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
+            ),
             onChanged: sc.setSound,
           ),
           SwitchListTile(
@@ -62,8 +64,10 @@ class SettingsScreen extends ConsumerWidget {
             activeThumbColor: tk.gold,
             contentPadding: EdgeInsets.zero,
             title: Text('Haptics', style: tk.body),
-            subtitle: Text('Vibration on big moments',
-                style: tk.body.copyWith(fontSize: 12, color: tk.textMuted)),
+            subtitle: Text(
+              'Vibration on big moments',
+              style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
+            ),
             onChanged: sc.setHaptics,
           ),
           const SizedBox(height: 20),
@@ -75,15 +79,18 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () {
               ref.read(draftConfigProvider.notifier).clearLeague();
               ref.read(leagueNameProvider.notifier).set('');
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('League cleared')));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('League cleared')));
             },
           ),
           const SizedBox(height: 24),
           Center(
-            child: Text('Draft Dash · v1.0.0\nNo internet · No tracking',
-                textAlign: TextAlign.center,
-                style: tk.body.copyWith(fontSize: 12, color: tk.textMuted)),
+            child: Text(
+              'Draft Dash · v1.0.0\nNo internet · No tracking',
+              textAlign: TextAlign.center,
+              style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
+            ),
           ),
         ],
       ),
@@ -91,16 +98,16 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _label(DraftTokens tk, String s) => Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 6),
-        child: Text(s, style: tk.label.copyWith(color: tk.gold)),
-      );
+    padding: const EdgeInsets.only(top: 8, bottom: 6),
+    child: Text(s, style: tk.label.copyWith(color: tk.gold)),
+  );
 
   Widget _swatch(Color a, Color b) => Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          gradient: LinearGradient(colors: [a, b]),
-        ),
-      );
+    width: 34,
+    height: 34,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(8),
+      gradient: LinearGradient(colors: [a, b]),
+    ),
+  );
 }

@@ -28,7 +28,9 @@ class LotteryBall extends StatelessWidget {
           colors: [Color(0xFFFFFFFF), Color(0xFFF2F3F5), Color(0xFFD7DADF)],
           stops: [0, .55, 1],
         ),
-        border: highlight ? Border.all(color: const Color(0xFFF5A524), width: 3) : null,
+        border: highlight
+            ? Border.all(color: const Color(0xFFF5A524), width: 3)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: .35),

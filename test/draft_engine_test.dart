@@ -4,15 +4,15 @@ import 'package:draft_race/domain/draft/participant.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 List<Participant> roster(int n, {List<double>? weights}) => [
-      for (var i = 0; i < n; i++)
-        Participant(
-          id: 'p$i',
-          name: 'P$i',
-          number: '${i + 1}',
-          colorValue: 0xFF000000 | i,
-          weight: weights == null ? 1.0 : weights[i],
-        ),
-    ];
+  for (var i = 0; i < n; i++)
+    Participant(
+      id: 'p$i',
+      name: 'P$i',
+      number: '${i + 1}',
+      colorValue: 0xFF000000 | i,
+      weight: weights == null ? 1.0 : weights[i],
+    ),
+];
 
 void main() {
   group('DraftEngine.generate', () {

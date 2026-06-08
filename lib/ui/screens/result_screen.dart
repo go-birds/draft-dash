@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 
 import '../../domain/draft/participant.dart';
+import '../../domain/draft/draft_recap.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/buttons.dart';
@@ -20,14 +22,18 @@ class ResultScreen extends ConsumerWidget {
       return Scaffold(
         backgroundColor: tk.background,
         body: Center(
-            child: Text('No draft yet', style: tk.body.copyWith(color: tk.textMuted))),
+          child: Text(
+            'No draft yet',
+            style: tk.body.copyWith(color: tk.textMuted),
+          ),
+        ),
       );
     }
 
     final byId = {for (final p in cfg.participants) p.id: p};
     final ordered = [
       for (final id in result.order)
-        if (byId[id] != null) byId[id]!
+        if (byId[id] != null) byId[id]!,
     ];
     final champ = ordered.first;
 
@@ -39,6 +45,20 @@ class ResultScreen extends ConsumerWidget {
       ref.read(draftControllerProvider.notifier).editOrder(ids);
     }
 
+    Future<void> copyRecap() async {
+      final recap = DraftRecap.format(
+        mode: result.mode,
+        ordered: ordered,
+        leagueName: ref.read(leagueNameProvider),
+        proofCode: result.proofCode,
+      );
+      await Clipboard.setData(ClipboardData(text: recap));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Draft recap copied')));
+    }
+
     return Scaffold(
       backgroundColor: tk.background,
       body: Column(
@@ -48,26 +68,46 @@ class ResultScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
             child: Row(
               children: [
-                Text('DRAFT BOARD', style: tk.displayLarge.copyWith(fontSize: 22)),
+                Text(
+                  'DRAFT BOARD',
+                  style: tk.displayLarge.copyWith(fontSize: 22),
+                ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: tk.gold),
                   ),
-                  child: Text('✎ COMMISH EDIT',
-                      style: tk.label.copyWith(color: tk.gold, fontSize: 11)),
+                  child: Text(
+                    '✎ COMMISH EDIT',
+                    style: tk.label.copyWith(color: tk.gold, fontSize: 11),
+                  ),
                 ),
               ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('DRAG ANY ROW TO OVERRIDE THE ORDER',
-                  style: tk.label.copyWith(fontSize: 10, color: tk.textMuted)),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'DRAG ANY ROW TO OVERRIDE THE ORDER',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tk.label.copyWith(fontSize: 10, color: tk.textMuted),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  result.proofCode,
+                  style: tk.mono.copyWith(fontSize: 11, color: tk.led),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -88,25 +128,48 @@ class ResultScreen extends ConsumerWidget {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
-                    width: 140,
-                    child: GhostButton('↺ RUN AGAIN', onPressed: () {
-                      Navigator.of(context)
-                        ..pop()
-                        ..pop(); // back to setup
-                    }),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GhostButton(
+                          'RUN AGAIN',
+                          icon: Icons.replay_rounded,
+                          height: 48,
+                          onPressed: () {
+                            Navigator.of(context)
+                              ..pop()
+                              ..pop(); // back to setup
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GhostButton(
+                          'COPY RECAP',
+                          icon: Icons.copy_rounded,
+                          height: 48,
+                          onPressed: copyRecap,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: PrimaryButton('SAVE BOARD ✓', onPressed: () async {
-                      await ref.read(draftControllerProvider.notifier).saveToHistory();
+                  const SizedBox(height: 10),
+                  PrimaryButton(
+                    'SAVE BOARD',
+                    icon: Icons.emoji_events_rounded,
+                    onPressed: () async {
+                      await ref
+                          .read(draftControllerProvider.notifier)
+                          .saveToHistory();
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Draft saved to history 🏆')));
+                        const SnackBar(content: Text('Draft saved to history')),
+                      );
                       Navigator.of(context).popUntil((r) => r.isFirst);
-                    }),
+                    },
                   ),
                 ],
               ),
@@ -157,19 +220,24 @@ class _ChampBanner extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('🏆 FIRST OVERALL PICK',
-                    style: tk.label.copyWith(color: tk.gold, letterSpacing: 3)),
+                Text(
+                  '🏆 FIRST OVERALL PICK',
+                  style: tk.label.copyWith(color: tk.gold, letterSpacing: 3),
+                ),
                 const SizedBox(height: 10),
                 JerseyChip(
-                    color: Color(champ.colorValue),
-                    number: champ.number,
-                    size: 66,
-                    highlight: true),
+                  color: Color(champ.colorValue),
+                  number: champ.number,
+                  size: 66,
+                  highlight: true,
+                ),
                 const SizedBox(height: 8),
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(champ.name.toUpperCase(),
-                      style: tk.displayLarge.copyWith(fontSize: 34)),
+                  child: Text(
+                    champ.name.toUpperCase(),
+                    style: tk.displayLarge.copyWith(fontSize: 34),
+                  ),
                 ),
               ],
             ),
@@ -201,10 +269,14 @@ class _PickRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 40,
-            child: Text('${index + 1}',
-                textAlign: TextAlign.center,
-                style: tk.displayLarge.copyWith(
-                    fontSize: 26, color: first ? tk.gold : tk.textMuted)),
+            child: Text(
+              '${index + 1}',
+              textAlign: TextAlign.center,
+              style: tk.displayLarge.copyWith(
+                fontSize: 26,
+                color: first ? tk.gold : tk.textMuted,
+              ),
+            ),
           ),
           JerseyChip(color: Color(p.colorValue), number: p.number, size: 42),
           const SizedBox(width: 14),

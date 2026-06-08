@@ -12,8 +12,9 @@ Color darken(Color c, [double amt = .14]) {
 }
 
 /// Readable text color (black/white) for a filled [c] background.
-Color onColor(Color c) =>
-    c.computeLuminance() > 0.55 ? const Color(0xFF1A1206) : const Color(0xFFFFFFFF);
+Color onColor(Color c) => c.computeLuminance() > 0.55
+    ? const Color(0xFF1A1206)
+    : const Color(0xFFFFFFFF);
 
 /// Top-lit gradient stops for a jersey/ball fill.
 List<Color> jerseyGradient(Color c) => [lighten(c, .12), c, darken(c, .16)];
