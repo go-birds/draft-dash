@@ -1,5 +1,6 @@
 import 'participant.dart';
 import 'draft_mode.dart';
+import 'league_ledger.dart';
 
 /// Everything needed to run a draft: who's in it, the chosen mode, the odds
 /// switch, ordering direction, and any commissioner pre-draw rigging.
@@ -23,6 +24,9 @@ class DraftConfig {
   /// values leave more of the board to deterministic fill.
   final int? lotteryPickCount;
 
+  /// Season-long commissioner notes, odds modifiers, and pick locks.
+  final List<LeagueLedgerEntry> ledgerEntries;
+
   const DraftConfig({
     required this.participants,
     this.mode = DraftMode.race,
@@ -30,6 +34,7 @@ class DraftConfig {
     this.reverseOrder = false,
     this.pins = const {},
     this.lotteryPickCount,
+    this.ledgerEntries = const [],
   });
 
   int get size => participants.length;
@@ -39,6 +44,37 @@ class DraftConfig {
     return (lotteryPickCount ?? size - 1).clamp(0, size - 1);
   }
 
+  DraftConfig get ledgerApplied {
+    if (ledgerEntries.isEmpty) return this;
+    final adjustments = <String, double>{};
+    final ledgerPins = <int, String>{};
+    final validIds = {for (final p in participants) p.id};
+
+    for (final entry in ledgerEntries) {
+      if (!validIds.contains(entry.managerId)) continue;
+      if (entry.affectsOdds) {
+        adjustments[entry.managerId] =
+            (adjustments[entry.managerId] ?? 0) + entry.weightDelta;
+      }
+      if (entry.locksPick) {
+        final slot = entry.pickIndex!;
+        if (slot >= 0 && slot < participants.length) {
+          ledgerPins[slot] = entry.managerId;
+        }
+      }
+    }
+
+    return copyWith(
+      participants: [
+        for (final p in participants)
+          p.copyWith(
+            weight: (p.weight + (adjustments[p.id] ?? 0)).clamp(0.2, 5.0),
+          ),
+      ],
+      pins: {...pins, ...ledgerPins},
+    );
+  }
+
   DraftConfig copyWith({
     List<Participant>? participants,
     DraftMode? mode,
@@ -46,6 +82,7 @@ class DraftConfig {
     bool? reverseOrder,
     Map<int, String>? pins,
     int? lotteryPickCount,
+    List<LeagueLedgerEntry>? ledgerEntries,
   }) {
     return DraftConfig(
       participants: participants ?? this.participants,
@@ -54,6 +91,7 @@ class DraftConfig {
       reverseOrder: reverseOrder ?? this.reverseOrder,
       pins: pins ?? this.pins,
       lotteryPickCount: lotteryPickCount ?? this.lotteryPickCount,
+      ledgerEntries: ledgerEntries ?? this.ledgerEntries,
     );
   }
 
@@ -64,6 +102,8 @@ class DraftConfig {
     'reverseOrder': reverseOrder,
     'pins': {for (final e in pins.entries) e.key.toString(): e.value},
     if (lotteryPickCount != null) 'lotteryPickCount': lotteryPickCount,
+    if (ledgerEntries.isNotEmpty)
+      'ledgerEntries': [for (final e in ledgerEntries) e.toJson()],
   };
 
   static DraftConfig fromJson(Map<String, dynamic> j) => DraftConfig(
@@ -75,6 +115,10 @@ class DraftConfig {
     weightingEnabled: (j['weightingEnabled'] as bool?) ?? true,
     reverseOrder: (j['reverseOrder'] as bool?) ?? false,
     lotteryPickCount: (j['lotteryPickCount'] as num?)?.toInt(),
+    ledgerEntries: [
+      for (final e in ((j['ledgerEntries'] ?? []) as List))
+        LeagueLedgerEntry.fromJson(Map<String, dynamic>.from(e as Map)),
+    ],
     pins: {
       for (final e in ((j['pins'] ?? {}) as Map).entries)
         int.parse(e.key as String): e.value as String,

@@ -15,6 +15,8 @@ When a result recap is copied, it includes:
 - Whether reverse order was enabled
 - How many picks were drawn by lottery before deterministic fill
 - Commissioner pins, if any
+- League Ledger entries, including odds boosts, odds penalties, pick locks, and
+  commissioner notes
 - Manager settings at execution time, including names, jersey numbers, weights,
   and auction budgets
 - Final draft board
@@ -46,6 +48,8 @@ The proof metadata explains the conditions under which the draft was executed:
   before deterministic fill. If it is absent, the default is every pick until
   only one manager remains.
 - `settings.pins` proves any commissioner-assigned pick slots.
+- `settings.ledgerEntries` proves which season-long consequences were applied
+  or summarized on draft day.
 - `settings.participants` proves the manager weights, budgets, numbers, and
   names that were present when the draft was executed.
 
@@ -60,7 +64,9 @@ agreed to before the draw?"
 3. Compare the metadata settings to the league's agreed setup before the draw.
 4. Confirm commissioner pins match any manual pick assignments the league
    agreed to use.
-5. Confirm the final draft board in the recap matches the saved board in the
+5. Confirm League Ledger entries match the season-long penalties, rewards,
+   trades, and notes the commissioner recorded.
+6. Confirm the final draft board in the recap matches the saved board in the
    app.
 
 If all of those match, the recap represents the saved Draft Dash result and the

@@ -2,6 +2,7 @@ import 'package:draft_race/domain/draft/draft_config.dart';
 import 'package:draft_race/domain/draft/draft_mode.dart';
 import 'package:draft_race/domain/draft/draft_recap.dart';
 import 'package:draft_race/domain/draft/draft_result.dart';
+import 'package:draft_race/domain/draft/league_ledger.dart';
 import 'package:draft_race/domain/draft/participant.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,11 +14,21 @@ void main() {
         leagueName: 'Sunday League',
         proofCode: 'DD-ABC-1234',
         proofMetadata: DraftProofMetadata.fromConfig(
-          const DraftConfig(
+          DraftConfig(
             mode: DraftMode.race,
             weightingEnabled: true,
             reverseOrder: false,
             pins: {0: 'p1'},
+            ledgerEntries: [
+              LeagueLedgerEntry(
+                id: 'ledger-1',
+                type: LedgerEntryType.oddsPenalty,
+                managerId: 'p2',
+                title: 'Missed dues deadline',
+                weightDelta: -.5,
+                createdAt: DateTime.utc(2026, 6, 8),
+              ),
+            ],
             participants: [
               Participant(
                 id: 'p1',
@@ -66,6 +77,7 @@ void main() {
           'Seed: 42',
           'Settings: mode The Race, weighting on, reverse order off, lottery picks 1',
           'Commissioner pins: pick 1=Nick',
+          'League Ledger: Jordan odds penalized -0.5x: Missed dues deadline',
           'Manager settings: Nick (#07, weight 2.00, budget 150); Jordan (#23, weight 1.00, budget 100)',
           'First overall: Nick',
           '',

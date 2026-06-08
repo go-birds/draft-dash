@@ -1,5 +1,6 @@
 import 'draft_config.dart';
 import 'draft_mode.dart';
+import 'league_ledger.dart';
 import 'participant.dart';
 
 /// Audit-friendly metadata captured when a draft is executed.
@@ -31,6 +32,9 @@ class DraftProofMetadata {
       reverseOrder: settings.reverseOrder,
       pins: Map<int, String>.unmodifiable(settings.pins),
       lotteryPickCount: settings.lotteryPickCount,
+      ledgerEntries: List<LeagueLedgerEntry>.unmodifiable(
+        settings.ledgerEntries,
+      ),
     ),
   );
 

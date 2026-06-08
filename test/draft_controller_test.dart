@@ -1,5 +1,6 @@
 import 'package:draft_race/domain/draft/draft_mode.dart';
 import 'package:draft_race/domain/draft/draft_result.dart';
+import 'package:draft_race/domain/draft/league_ledger.dart';
 import 'package:draft_race/storage/storage_service.dart';
 import 'package:draft_race/ui/state/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -99,6 +100,31 @@ void main() {
     expect(current.participants.single.weight, 1);
     expect(current.participants.single.budget, 100);
     expect(storage.loadConfig()?.participants.map((p) => p.name), ['Jordan']);
+  });
+
+  test('manager removal also clears their ledger entries', () async {
+    final (:container, :storage) = await _container();
+    addTearDown(container.dispose);
+    final config = container.read(draftConfigProvider.notifier);
+
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    final removedId = container.read(draftConfigProvider).participants.first.id;
+    config.addLedgerEntry(
+      LeagueLedgerEntry(
+        id: 'e1',
+        type: LedgerEntryType.oddsPenalty,
+        managerId: removedId,
+        title: 'Last place tax',
+        weightDelta: -.5,
+        createdAt: DateTime.utc(2026, 6, 8),
+      ),
+    );
+
+    config.removeManager(removedId);
+
+    expect(container.read(draftConfigProvider).ledgerEntries, isEmpty);
+    expect(storage.loadConfig()?.ledgerEntries, isEmpty);
   });
 }
 

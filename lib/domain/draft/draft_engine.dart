@@ -19,6 +19,7 @@ class DraftEngine {
   static const double _minWeight = 1e-4;
 
   static DraftResult generate(DraftConfig config, {required int seed}) {
+    config = config.ledgerApplied;
     final n = config.size;
     final rng = Random(seed);
 
@@ -95,6 +96,7 @@ class DraftEngine {
   /// Honors weighting and a pin on pick #1; pinned-elsewhere managers are
   /// excluded from the pick-#1 pool.
   static Map<String, double> relativeOdds(DraftConfig config) {
+    config = config.ledgerApplied;
     final ids = [for (final p in config.participants) p.id];
     final result = {for (final id in ids) id: 0.0};
     if (ids.isEmpty) return result;

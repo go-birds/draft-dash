@@ -5,6 +5,7 @@ import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/buttons.dart';
 import 'history_screen.dart';
+import 'league_ledger_screen.dart';
 import 'settings_screen.dart';
 import 'setup_screen.dart';
 
@@ -92,6 +93,11 @@ class HomeScreen extends ConsumerWidget {
                         GhostButton(
                           '↺  ${league.isEmpty ? "LAST LEAGUE" : league.toUpperCase()}  ·  ${cfg.participants.length} MGRS',
                           onPressed: () => open(const SetupScreen()),
+                        ),
+                        const SizedBox(height: 12),
+                        GhostButton(
+                          '📒  LEAGUE LEDGER  ·  ${cfg.ledgerEntries.length} ENTRIES',
+                          onPressed: () => open(const LeagueLedgerScreen()),
                         ),
                       ],
                       const SizedBox(height: 12),

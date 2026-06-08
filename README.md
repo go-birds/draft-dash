@@ -15,6 +15,10 @@ The app stores league setup and draft history locally on-device. Draft results
 can be saved, reopened later, copied as a recap, and verified with a stable
 proof code plus execution metadata.
 
+Draft Dash also includes **League Ledger**, a local commissioner log for
+season-long consequences: odds boosts, odds penalties, traded/locked picks, and
+draft-day notes.
+
 ## Project Structure
 
 ```text
@@ -91,6 +95,9 @@ Copied draft recaps include a proof code, execution timestamp, draft seed, draft
 settings snapshot, commissioner pins, manager settings, and final board. Use
 these together to confirm the saved result matches the settings the league
 agreed to before the draw.
+
+If League Ledger entries are present, recaps also include their draft-day
+summary so odds penalties, bonuses, and pick locks are visible to the league.
 
 See [`docs/PROOF_VERIFICATION.md`](docs/PROOF_VERIFICATION.md) for the full
 verification workflow and current limitations.

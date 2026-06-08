@@ -33,6 +33,8 @@ flutter build appbundle --release
 - Put Riverpod controllers/providers in `lib/ui/state`.
 - Put reusable visual components in `lib/ui/widgets`.
 - Keep screens focused on layout, navigation, and user interaction.
+- Keep season-long commissioner consequences in League Ledger models before
+  adding backend/account complexity.
 
 ## Testing Guidance
 

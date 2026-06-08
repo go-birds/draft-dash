@@ -96,6 +96,7 @@ Initial alpha for Draft Dash.
 - Create fantasy draft orders with Race, Card Flip, Lottery, and Auction modes.
 - Save draft boards locally and reopen them later.
 - Copy shareable draft recaps with verification proof codes, execution
-  timestamps, lottery-depth settings, and draft-settings metadata.
+- timestamps, lottery-depth settings, League Ledger consequences, and
+  draft-settings metadata.
 - Manage league settings, themes, sound, and draft history on-device.
 ```

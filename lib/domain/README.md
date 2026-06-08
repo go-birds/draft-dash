@@ -15,6 +15,7 @@ draft/
 ├── draft_recap.dart    # Shareable recap text
 ├── draft_result.dart   # Saved result, proof code, JSON, roster snapshots
 ├── draft_settings.dart # User-facing settings model
+├── league_ledger.dart  # Season consequences: odds changes, pick locks, notes
 └── participant.dart    # Manager model
 ```
 
@@ -26,6 +27,7 @@ draft/
 4. Keep persistence codes stable once released.
 5. Prefer small immutable models with `copyWith` over mutating shared state.
 6. Add tests for edge cases before changing draft-order behavior.
+7. Keep League Ledger entries local-first and serializable with `DraftConfig`.
 
 ## Important Invariants
 
@@ -33,6 +35,9 @@ draft/
   IDs. It intentionally ignores display names and roster snapshots.
 - `DraftResult.proofMetadata` captures the execution timestamp, seed, and full
   draft settings snapshot used to run the draft.
+- League Ledger entries are applied before draft generation. Odds entries adjust
+  manager weights, pick-lock entries merge into commissioner pins, and all
+  entries are retained in proof metadata for draft-day auditability.
 - Lottery mode uses `NbaLottery`: 14 balls, 4-number combinations, 1,000
   assigned combinations, and a redraw for the ignored 11-12-13-14 combination.
   By default, lottery picks are drawn until only one manager remains. A lower

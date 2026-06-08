@@ -11,6 +11,7 @@ import '../widgets/manager_tile.dart';
 import '../widgets/mode_card.dart';
 import 'bidding_screen.dart';
 import 'cards_screen.dart';
+import 'league_ledger_screen.dart';
 import 'lottery_screen.dart';
 import 'race_screen.dart';
 
@@ -225,6 +226,17 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  GhostButton(
+                    '📒 LEAGUE LEDGER (${cfg.ledgerEntries.length})',
+                    height: 46,
+                    textColor: cfg.ledgerEntries.isEmpty ? null : tk.gold,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const LeagueLedgerScreen(),
+                      ),
+                    ),
                   ),
                   if (cfg.weightingEnabled &&
                       cfg.mode != DraftMode.bidding) ...[

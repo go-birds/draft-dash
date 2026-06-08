@@ -9,6 +9,7 @@ import '../../domain/draft/draft_config.dart';
 import '../../domain/draft/draft_engine.dart';
 import '../../domain/draft/draft_mode.dart';
 import '../../domain/draft/draft_result.dart';
+import '../../domain/draft/league_ledger.dart';
 import '../../domain/draft/draft_settings.dart';
 import '../../domain/draft/participant.dart';
 import '../../storage/storage_service.dart';
@@ -158,7 +159,16 @@ class DraftConfigController extends Notifier<DraftConfig> {
       for (final e in state.pins.entries)
         if (e.value != id) e.key: e.value,
     };
-    _set(state.copyWith(participants: next, pins: pins));
+    _set(
+      state.copyWith(
+        participants: next,
+        pins: pins,
+        ledgerEntries: [
+          for (final entry in state.ledgerEntries)
+            if (entry.managerId != id) entry,
+        ],
+      ),
+    );
   }
 
   void updateManager(Participant updated) {
@@ -196,6 +206,23 @@ class DraftConfigController extends Notifier<DraftConfig> {
   void setWeightingEnabled(bool v) => _set(state.copyWith(weightingEnabled: v));
   void setReverseOrder(bool v) => _set(state.copyWith(reverseOrder: v));
   void setLotteryPickCount(int v) => _set(state.copyWith(lotteryPickCount: v));
+
+  void addLedgerEntry(LeagueLedgerEntry entry) {
+    _set(state.copyWith(ledgerEntries: [entry, ...state.ledgerEntries]));
+  }
+
+  void removeLedgerEntry(String id) {
+    _set(
+      state.copyWith(
+        ledgerEntries: [
+          for (final entry in state.ledgerEntries)
+            if (entry.id != id) entry,
+        ],
+      ),
+    );
+  }
+
+  void clearLedger() => _set(state.copyWith(ledgerEntries: const []));
 
   void resetOdds() => _set(
     state.copyWith(

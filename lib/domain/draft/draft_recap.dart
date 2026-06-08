@@ -57,6 +57,11 @@ class DraftRecap {
         '${p.name} (#${p.number}, weight ${p.weight.toStringAsFixed(2)}, '
             'budget ${p.budget})',
     ].join('; ');
+    final ledgerSummary = settings.ledgerEntries.isEmpty
+        ? 'none'
+        : [
+            for (final e in settings.ledgerEntries) e.summary(managersById),
+          ].join(' | ');
 
     return [
       'Executed: ${metadata.executedAt.toIso8601String()}',
@@ -66,6 +71,7 @@ class DraftRecap {
           'reverse order ${settings.reverseOrder ? 'on' : 'off'}, '
           'lottery picks ${settings.effectiveLotteryPickCount}',
       'Commissioner pins: $pinSummary',
+      'League Ledger: $ledgerSummary',
       'Manager settings: $managerSummary',
     ];
   }
