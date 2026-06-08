@@ -1,5 +1,6 @@
 import java.io.FileInputStream
 import java.util.Properties
+import org.gradle.api.GradleException
 
 plugins {
     id("com.android.application")
@@ -62,11 +63,12 @@ android {
 
     buildTypes {
         release {
-            // Falls back to the debug key for local release smoke tests.
-            // Set android/key.properties or DRAFT_RACE_ANDROID_* for production builds.
-            signingConfig =
-                if (releaseSigningConfigured) signingConfigs.getByName("release")
-                else signingConfigs.getByName("debug")
+            if (!releaseSigningConfigured) {
+                throw GradleException(
+                    "Release signing is not configured. Create android/key.properties or set DRAFT_RACE_ANDROID_* env vars."
+                )
+            }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

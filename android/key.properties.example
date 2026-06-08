@@ -1,0 +1,7 @@
+# Copy this file to `android/key.properties` and fill in your release signing values.
+# You can also provide the same values via DRAFT_RACE_ANDROID_* environment variables.
+
+storeFile=upload-keystore.jks
+storePassword=replace-me
+keyAlias=upload
+keyPassword=replace-me
