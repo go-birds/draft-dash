@@ -93,6 +93,7 @@ class HistoryScreen extends ConsumerWidget {
                     ordered: ordered,
                     leagueName: r.leagueName,
                     proofCode: r.proofCode,
+                    proofMetadata: r.proofMetadata,
                   );
                   await Clipboard.setData(ClipboardData(text: recap));
                   if (!context.mounted) return;
@@ -246,6 +247,7 @@ class _SavedDraftDetailScreen extends StatelessWidget {
         ordered: ordered,
         leagueName: result.leagueName,
         proofCode: result.proofCode,
+        proofMetadata: result.proofMetadata,
       );
       await Clipboard.setData(ClipboardData(text: recap));
       if (!context.mounted) return;

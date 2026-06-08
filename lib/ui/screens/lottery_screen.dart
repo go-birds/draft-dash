@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/draft/nba_lottery.dart';
 import '../../domain/draft/participant.dart';
 import '../../services/feedback.dart';
 import '../state/providers.dart';
@@ -22,7 +23,8 @@ class LotteryScreen extends ConsumerStatefulWidget {
 class _LotteryScreenState extends ConsumerState<LotteryScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _tumble;
-  int _drawn = 0;
+  int _roundIndex = 0;
+  int _ballsDrawn = 0;
 
   @override
   void initState() {
@@ -44,23 +46,50 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
     final tk = context.tokens;
     final result = ref.watch(draftControllerProvider);
     final cfg = ref.watch(draftConfigProvider);
-    final odds = ref.watch(oddsProvider);
     final byId = {for (final p in cfg.participants) p.id: p};
-    final order = result?.order ?? const [];
-    final picks = [
-      for (final id in order)
-        if (byId[id] != null) byId[id]!,
+    final plan = result == null
+        ? null
+        : NbaLottery.generate(cfg, seed: result.seed);
+    final rounds = plan?.rounds ?? const <NbaLotteryRound>[];
+    final currentRound = _roundIndex < rounds.length
+        ? rounds[_roundIndex]
+        : null;
+    final completedRounds = rounds.take(_roundIndex).toList();
+    final alreadyWon = {for (final r in completedRounds) r.winnerId};
+    final drawnBalls = currentRound == null
+        ? const <int>[]
+        : currentRound.balls.take(_ballsDrawn).toList();
+    final chances =
+        plan?.assignment.chancesAfter(
+          drawnBalls: drawnBalls,
+          alreadyWon: alreadyWon,
+        ) ??
+        const <String, double>{};
+    final lotteryDone = _roundIndex >= rounds.length;
+    final justWon = _ballsDrawn >= NbaLottery.ballsPerDraw
+        ? byId[currentRound?.winnerId]
+        : null;
+    final shownWinners = [
+      for (final r in completedRounds)
+        if (byId[r.winnerId] != null) byId[r.winnerId]!,
+      ?justWon,
     ];
-    final n = picks.length;
-    final drawnList = picks.take(_drawn).toList();
-    final remaining = picks.skip(_drawn).toList();
-    final allDone = _drawn >= n;
-    final justDrawn = _drawn > 0 ? picks[_drawn - 1] : null;
+    final possibleIds = {
+      for (final e in chances.entries)
+        if (e.value > 0) e.key,
+    };
 
     void drawNext() {
-      if (_drawn >= n) return;
+      if (currentRound == null) return;
+      if (_ballsDrawn >= NbaLottery.ballsPerDraw) {
+        setState(() {
+          _roundIndex += 1;
+          _ballsDrawn = 0;
+        });
+        return;
+      }
       AppFeedback.of(ref).ballDraw();
-      setState(() => _drawn += 1);
+      setState(() => _ballsDrawn += 1);
     }
 
     return Scaffold(
@@ -74,13 +103,13 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
               style: tk.label.copyWith(color: tk.gold, letterSpacing: 4),
             ),
             Text(
-              allDone ? 'THE BOARD IS SET' : 'THE DRAW',
+              lotteryDone ? 'THE BOARD IS SET' : 'PING-PONG DRAW',
               style: tk.displayLarge.copyWith(fontSize: 28),
             ),
             Text(
-              allDone
-                  ? 'all $n picks drawn'
-                  : 'weighted by odds · pick ${_drawn + 1} on the clock',
+              lotteryDone
+                  ? 'top ${rounds.length} picks drawn · full board ready'
+                  : '14 balls · 4-number combo · pick ${_roundIndex + 1}',
               style: tk.label.copyWith(fontSize: 11, color: tk.textMuted),
             ),
             const SizedBox(height: 6),
@@ -97,7 +126,10 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
                       painter: _MachinePainter(tk: tk),
                       child: _BallField(
                         t: _tumble.value,
-                        balls: remaining,
+                        balls: [
+                          for (var i = 1; i <= NbaLottery.ballCount; i++) i,
+                        ],
+                        drawnBalls: drawnBalls,
                         tk: tk,
                       ),
                     ),
@@ -108,44 +140,57 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
 
             // drawn callout
             SizedBox(
-              height: 84,
-              child: justDrawn == null
+              height: 96,
+              child: currentRound == null
                   ? Center(
                       child: Text(
-                        'Tap draw to start the lottery',
+                        'Lottery combinations complete',
                         style: tk.body.copyWith(color: tk.textMuted),
                       ),
                     )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        LotteryBall(
-                          color: Color(justDrawn.colorValue),
-                          number: justDrawn.number,
-                          size: 60,
-                          highlight: true,
-                        ),
+                        for (var i = 0; i < NbaLottery.ballsPerDraw; i++) ...[
+                          LotteryBall(
+                            color: i < drawnBalls.length
+                                ? tk.gold
+                                : tk.textMuted,
+                            number: i < drawnBalls.length
+                                ? '${drawnBalls[i]}'
+                                : '?',
+                            size: 48,
+                            highlight: i == drawnBalls.length - 1,
+                          ),
+                          if (i != NbaLottery.ballsPerDraw - 1)
+                            const SizedBox(width: 7),
+                        ],
                         const SizedBox(width: 14),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'PICK $_drawn',
+                              'PICK ${_roundIndex + 1}',
                               style: tk.label.copyWith(
                                 fontSize: 11,
                                 color: tk.textMuted,
                               ),
                             ),
                             Text(
-                              justDrawn.name.toUpperCase(),
+                              justWon?.name.toUpperCase() ??
+                                  '$_ballsDrawn/${NbaLottery.ballsPerDraw} BALLS',
                               style: tk.displayLarge.copyWith(fontSize: 28),
                             ),
                             Text(
-                              '${((odds[justDrawn.id] ?? 0) * 100).round()}% odds · on the board',
+                              justWon == null
+                                  ? 'possible winners update after every ball'
+                                  : 'winning combo ${currentRound.balls.join('-')}',
                               style: tk.body.copyWith(
                                 fontSize: 12,
-                                color: tk.success,
+                                color: justWon == null
+                                    ? tk.textMuted
+                                    : tk.success,
                               ),
                             ),
                           ],
@@ -154,16 +199,28 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
                     ),
             ),
 
+            SizedBox(
+              height: 136,
+              child: _ProbabilityBoard(
+                participants: cfg.participants,
+                chances: chances,
+                possibleIds: possibleIds,
+                alreadyWon: alreadyWon,
+                active: !lotteryDone,
+                tk: tk,
+              ),
+            ),
+
             // mini board
             SizedBox(
               height: 34,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 18),
-                itemCount: drawnList.length,
+                itemCount: shownWinners.length,
                 separatorBuilder: (_, i) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
-                  final p = drawnList[i];
+                  final p = shownWinners[i];
                   return Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -190,7 +247,7 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
 
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
-              child: allDone
+              child: lotteryDone
                   ? PrimaryButton(
                       'SEE THE BOARD ✓',
                       onPressed: () {
@@ -202,13 +259,104 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
                       },
                     )
                   : PrimaryButton(
-                      'DRAW PICK ${_drawn + 1} 🎱',
+                      _ballsDrawn >= NbaLottery.ballsPerDraw
+                          ? _roundIndex + 1 >= rounds.length
+                                ? 'LOCK LOTTERY PICKS ✓'
+                                : 'NEXT PICK'
+                          : 'DRAW BALL ${_ballsDrawn + 1} 🎱',
                       onPressed: drawNext,
                     ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ProbabilityBoard extends StatelessWidget {
+  final List<Participant> participants;
+  final Map<String, double> chances;
+  final Set<String> possibleIds;
+  final Set<String> alreadyWon;
+  final bool active;
+  final DraftTokens tk;
+
+  const _ProbabilityBoard({
+    required this.participants,
+    required this.chances,
+    required this.possibleIds,
+    required this.alreadyWon,
+    required this.active,
+    required this.tk,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!active) {
+      return Center(
+        child: Text(
+          'Top lottery picks are locked. Remaining teams fill the board.',
+          textAlign: TextAlign.center,
+          style: tk.body.copyWith(color: tk.textMuted, fontSize: 12),
+        ),
+      );
+    }
+    final sorted = [...participants]
+      ..sort((a, b) => (chances[b.id] ?? 0).compareTo(chances[a.id] ?? 0));
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      itemCount: sorted.length,
+      separatorBuilder: (_, i) => const SizedBox(height: 6),
+      itemBuilder: (_, i) {
+        final p = sorted[i];
+        final won = alreadyWon.contains(p.id);
+        final chance = chances[p.id] ?? 0;
+        final possible = possibleIds.contains(p.id) && !won;
+        final dim = won || !possible;
+        return AnimatedOpacity(
+          duration: const Duration(milliseconds: 180),
+          opacity: dim ? .32 : 1,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: tk.surface.withValues(alpha: dim ? .55 : 1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: possible ? Color(p.colorValue) : tk.scoreboardLine,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(p.colorValue),
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    p.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tk.body.copyWith(fontSize: 12),
+                  ),
+                ),
+                Text(
+                  won ? 'won' : '${(chance * 100).toStringAsFixed(1)}%',
+                  style: tk.mono.copyWith(
+                    fontSize: 11,
+                    color: possible ? tk.led : tk.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -294,9 +442,15 @@ class _MachinePainter extends CustomPainter {
 
 class _BallField extends StatelessWidget {
   final double t;
-  final List<Participant> balls;
+  final List<int> balls;
+  final List<int> drawnBalls;
   final DraftTokens tk;
-  const _BallField({required this.t, required this.balls, required this.tk});
+  const _BallField({
+    required this.t,
+    required this.balls,
+    required this.drawnBalls,
+    required this.tk,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -315,14 +469,7 @@ class _BallField extends StatelessWidget {
     );
   }
 
-  Widget _positioned(
-    int i,
-    int n,
-    double cx,
-    double cy,
-    double r,
-    Participant p,
-  ) {
+  Widget _positioned(int i, int n, double cx, double cy, double r, int ball) {
     // distribute around a jittering ring, biased toward the lower half
     final baseAngle = (i / max(n, 1)) * 2 * pi;
     final wob = sin(t * 2 * pi + i * 1.7);
@@ -335,7 +482,12 @@ class _BallField extends StatelessWidget {
     return Positioned(
       left: x - s / 2,
       top: y - s / 2,
-      child: LotteryBall(color: Color(p.colorValue), number: p.number, size: s),
+      child: LotteryBall(
+        color: drawnBalls.contains(ball) ? tk.gold : tk.accent,
+        number: '$ball',
+        size: s,
+        highlight: drawnBalls.contains(ball),
+      ),
     );
   }
 }

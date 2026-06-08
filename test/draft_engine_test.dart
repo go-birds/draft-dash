@@ -1,5 +1,6 @@
 import 'package:draft_race/domain/draft/draft_config.dart';
 import 'package:draft_race/domain/draft/draft_engine.dart';
+import 'package:draft_race/domain/draft/draft_mode.dart';
 import 'package:draft_race/domain/draft/participant.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -32,11 +33,39 @@ void main() {
       expect(r.resolve(const []).map((p) => p.name), hasLength(4));
     });
 
+    test('captures proof metadata with the executed settings snapshot', () {
+      final cfg = DraftConfig(
+        participants: roster(4, weights: [3, 2, 1, 1]),
+        mode: DraftMode.lottery,
+        reverseOrder: true,
+        pins: const {1: 'p2'},
+      );
+
+      final r = DraftEngine.generate(cfg, seed: 7);
+
+      expect(r.proofMetadata, isNotNull);
+      expect(r.proofMetadata!.executedAt, r.createdAt);
+      expect(r.proofMetadata!.seed, 7);
+      expect(r.proofMetadata!.settings.mode, DraftMode.lottery);
+      expect(r.proofMetadata!.settings.weightingEnabled, isTrue);
+      expect(r.proofMetadata!.settings.reverseOrder, isTrue);
+      expect(r.proofMetadata!.settings.pins, {1: 'p2'});
+      expect(r.proofMetadata!.settings.participants, cfg.participants);
+    });
+
     test('is deterministic for a given seed', () {
       final cfg = DraftConfig(participants: roster(10));
       final a = DraftEngine.generate(cfg, seed: 42);
       final b = DraftEngine.generate(cfg, seed: 42);
       expect(a.order, b.order);
+    });
+
+    test('lottery mode uses NBA-style top-three combination winners', () {
+      final cfg = DraftConfig(participants: roster(8), mode: DraftMode.lottery);
+      final r = DraftEngine.generate(cfg, seed: 42);
+
+      expect(r.order.length, 8);
+      expect(r.order.toSet(), {for (final p in cfg.participants) p.id});
     });
 
     test('different seeds generally produce different orders', () {

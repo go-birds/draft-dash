@@ -1,27 +1,38 @@
 # Draft Dash
 
-Draft Dash is a Flutter app for fantasy football draft-order games. It supports four draft formats:
+Draft Dash is a Flutter app for fantasy football leagues that want a better
+way to decide draft order. It turns the order reveal into a short game-day
+moment with four modes:
 
 - Race
 - Card Flip
-- Lottery
+- Lottery, using an NBA-style 14-ball, 4-number combination draw. By default,
+  every pick is drawn until one manager remains; commissioners can choose fewer
+  lottery picks and let the rest fill deterministically.
 - Auction
 
-Managers are saved locally on-device, and draft history is preserved between launches.
+The app stores league setup and draft history locally on-device. Draft results
+can be saved, reopened later, copied as a recap, and verified with a stable
+proof code plus execution metadata.
 
-## Release Checklist
+## Project Structure
 
-Before shipping an alpha build:
+```text
+lib/
+├── domain/draft/   # Pure Dart draft models, engines, recaps, and result logic
+├── services/       # Cross-cutting platform/app services
+├── storage/        # Local persistence wrapper
+└── ui/             # Screens, widgets, state controllers, and theme tokens
 
-1. Update `pubspec.yaml` with the next app version and build number.
-2. Provide Android signing credentials in `android/key.properties` or via the matching `DRAFT_RACE_ANDROID_*` environment variables. Start from [`android/key.properties.example`](/Users/ncoleman/draft-race/android/key.properties.example).
-3. Run the validation suite:
+assets/
+├── audio/          # Local sound effects
+├── fonts/          # Bundled display/body fonts
+└── icon/           # Source launcher/splash artwork
 
-```bash
-flutter analyze
-flutter test
-flutter build apk --release
-flutter build ipa --no-codesign
+docs/               # Release and contributor runbooks
+mockups/            # Design/reference mockups
+tool/               # Asset-generation helpers
+test/               # Unit and widget tests
 ```
 
 ## Development
@@ -31,7 +42,63 @@ flutter pub get
 flutter run
 ```
 
+Useful checks before committing:
+
+```bash
+dart format --set-exit-if-changed lib test
+flutter analyze
+flutter test
+```
+
+Preview a seeded screen for screenshot/design work:
+
+```bash
+flutter run -t lib/preview.dart --dart-define=PREVIEW=race
+```
+
+Supported preview values: `setup`, `race`, `cards`, `lottery`, `bidding`, and
+`result`.
+
+## Release Checklist
+
+Before shipping an alpha build:
+
+1. Update `pubspec.yaml` with the next app version and build number.
+2. Provide Android signing credentials in `android/key.properties` or via the
+   matching `DRAFT_DASH_ANDROID_*` environment variables. Start from
+   [`android/key.properties.example`](android/key.properties.example).
+3. Run the validation suite:
+
+```bash
+dart format --set-exit-if-changed lib test
+flutter analyze
+flutter test
+flutter build appbundle --release
+```
+
+The Play Store upload artifact is written to:
+
+```text
+build/app/outputs/bundle/release/app-release.aab
+```
+
+See [`docs/RELEASE.md`](docs/RELEASE.md) for the fuller release runbook,
+store notes, and GitHub privacy-policy URL.
+
+## Proof Verification
+
+Copied draft recaps include a proof code, execution timestamp, draft seed, draft
+settings snapshot, commissioner pins, manager settings, and final board. Use
+these together to confirm the saved result matches the settings the league
+agreed to before the draw.
+
+See [`docs/PROOF_VERIFICATION.md`](docs/PROOF_VERIFICATION.md) for the full
+verification workflow and current limitations.
+
 ## Notes
 
 - The app uses local persistence via `shared_preferences`.
 - Sentry is wired in, but it is a no-op unless `SENTRY_DSN` is provided at build time.
+- The Dart package name remains `draft_race` for now to avoid a high-churn import
+  rename during alpha prep; the shipped app name and Android package are Draft
+  Dash / `com.gobirds.draftdash`.

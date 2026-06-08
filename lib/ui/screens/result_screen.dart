@@ -51,6 +51,7 @@ class ResultScreen extends ConsumerWidget {
         ordered: ordered,
         leagueName: ref.read(leagueNameProvider),
         proofCode: result.proofCode,
+        proofMetadata: result.proofMetadata,
       );
       await Clipboard.setData(ClipboardData(text: recap));
       if (!context.mounted) return;

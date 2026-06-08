@@ -1,90 +1,58 @@
-# Domain Layer
+# Draft Domain
 
-Pure Dart — zero Flutter imports. 100% unit-testable.
+This directory contains the pure Dart rules and data model for Draft Dash. It
+must stay free of Flutter, Riverpod, storage, and platform imports so draft
+behavior remains deterministic and easy to unit test.
 
-The domain has a small genre-agnostic core that every app needs, plus
-track-specific patterns depending on the kind of game you are building.
+## Files
 
----
-
-## Core (all games)
-
-```
-domain/
-├── game/
-│   ├── game.dart       # Game session state: immutable, copyWith()
-│   └── game_codec.dart # JSON serialization
-```
-
-Rules:
-1. One file = one concept. No giant files.
-2. All data classes immutable. Mutations return new instances via `copyWith()`.
-3. No `print()`. No Flutter imports (`package:flutter/...`).
-4. Constructors: `factory` for named construction patterns, `const` wherever possible.
-5. Enums: add a `code` getter (short string) for persistence. Add `fromCode(String)`.
-
----
-
-## Track A — Generated / deduction grid puzzles
-
-For games where puzzles are created programmatically (like Sudoku, Binairo, etc.).
-
-```
-domain/
-├── board/
-│   ├── cell.dart           # Piece/value enum (e.g. empty/a/b)
-│   ├── board.dart          # N×N immutable grid + operations
-│   └── puzzle.dart         # Puzzle = clues + solution + metadata
-├── rules/
-│   └── rules.dart          # Rule validators, violation types
-├── solver/
-│   └── solver.dart         # Deduction engine — used as generation gate AND hint engine
-├── generator/
-│   └── generator.dart      # Seeded, deterministic puzzle gen (rejects if solver can't solve)
-├── game/
-│   ├── game.dart
-│   └── game_codec.dart
-└── difficulty.dart         # Difficulty enum
+```text
+draft/
+├── auction.dart        # Auction-mode state machine and result creation
+├── draft_config.dart   # League setup: mode, managers, odds, budgets, pins
+├── draft_engine.dart   # Deterministic order generation for non-auction modes
+├── draft_mode.dart     # Persisted mode enum
+├── draft_recap.dart    # Shareable recap text
+├── draft_result.dart   # Saved result, proof code, JSON, roster snapshots
+├── draft_settings.dart # User-facing settings model
+└── participant.dart    # Manager model
 ```
 
-**Build order:** rules → generator → solver (use solver to verify generator output) → game.
+## Design Rules
 
-**Key invariant:** the generator must reject any puzzle its own solver can't uniquely solve.
-Frame the solver as a *generation gate*, not just for hints.
+1. Keep domain code deterministic for a given seed/configuration.
+2. Preserve saved results even when live league setup later changes.
+3. Treat old or partial saved JSON as recoverable user data, not an error.
+4. Keep persistence codes stable once released.
+5. Prefer small immutable models with `copyWith` over mutating shared state.
+6. Add tests for edge cases before changing draft-order behavior.
 
----
+## Important Invariants
 
-## Track B — Authored level packs
+- `DraftResult.proofCode` is based on the draft mode, seed, and ordered manager
+  IDs. It intentionally ignores display names and roster snapshots.
+- `DraftResult.proofMetadata` captures the execution timestamp, seed, and full
+  draft settings snapshot used to run the draft.
+- Lottery mode uses `NbaLottery`: 14 balls, 4-number combinations, 1,000
+  assigned combinations, and a redraw for the ignored 11-12-13-14 combination.
+  By default, lottery picks are drawn until only one manager remains. A lower
+  `lotteryPickCount` can be configured to fill more of the board
+  deterministically after the lottery portion.
+- `DraftResult.rosterSnapshot` captures manager details at result time so saved
+  boards remain readable after setup changes.
+- `DraftEngine.generate` sanitizes commissioner pins before ordering, because
+  release builds cannot rely on debug-only assertions.
+- `HistoryController` owns saved-history dedupe and cap behavior in the UI
+  state layer because it coordinates domain results with local persistence.
 
-For games with hand-crafted levels (platformers, puzzles with designer intent, etc.).
+See `docs/PROOF_VERIFICATION.md` for the user-facing explanation of how proof
+codes and metadata are used to audit a saved draft.
 
-```
-domain/
-├── level/
-│   ├── level.dart          # Immutable level data: layout, start state, par
-│   └── levels.dart         # Level pack: ordered list of Level + metadata
-├── game/
-│   ├── game.dart           # Session state: current level + player state + move history
-│   ├── game_engine.dart    # Pure step(Game, Input) → Game — no Flutter/Riverpod deps
-│   └── game_codec.dart
-```
+## Test Coverage
 
-**Build order:** engine → levels → solvability test → UI.
+Domain behavior is covered primarily by:
 
-**Key invariant:** every shipped level must be solver-verified. See §9 (Build Order) for
-the solvability test pattern.
-
-**Pure engine rule:** `game_engine.dart` must have zero storage/provider/Flutter dependencies.
-The controller calls it, sets state, and persists. This enables:
-- The live game and the test solver to share identical rules by construction (so the test
-  can't drift from gameplay).
-- Unit testing without a device.
-- The UI to animate a move (engine returns the path, not just the final state).
-
-**Memory trap:** if `Game` stores an undo snapshot pointing at the previous `Game`, a
-sequence of moves forms a linked list of past states. BFS over such states explodes memory.
-Give `Game` a `stripHistory()` method and use it when enqueuing solver states.
-
----
-
-See PLAYBOOK.md for detailed patterns and code examples for each track.
+- `test/draft_engine_test.dart`
+- `test/auction_test.dart`
+- `test/draft_result_test.dart`
+- `test/draft_recap_test.dart`

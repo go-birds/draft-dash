@@ -195,6 +195,7 @@ class DraftConfigController extends Notifier<DraftConfig> {
   void setMode(DraftMode m) => _set(state.copyWith(mode: m));
   void setWeightingEnabled(bool v) => _set(state.copyWith(weightingEnabled: v));
   void setReverseOrder(bool v) => _set(state.copyWith(reverseOrder: v));
+  void setLotteryPickCount(int v) => _set(state.copyWith(lotteryPickCount: v));
 
   void resetOdds() => _set(
     state.copyWith(
@@ -310,7 +311,12 @@ class AuctionController extends Notifier<AuctionState?> {
     if (next.isComplete) {
       ref
           .read(draftControllerProvider.notifier)
-          .setResult(next.toResult(seed: _freshSeed()));
+          .setResult(
+            next.toResult(
+              seed: _freshSeed(),
+              config: ref.read(draftConfigProvider),
+            ),
+          );
       return true;
     }
     return false;

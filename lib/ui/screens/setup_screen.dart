@@ -184,6 +184,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       full: true,
                     ),
 
+                  if (cfg.mode == DraftMode.lottery &&
+                      cfg.participants.length >= 2)
+                    _LotteryDepthControl(
+                      pickCount: cfg.effectiveLotteryPickCount,
+                      maxPickCount: cfg.participants.length - 1,
+                      onChanged: ctrl.setLotteryPickCount,
+                    ),
+
                   const SizedBox(height: 10),
                   for (final p in cfg.participants)
                     ManagerTile(
@@ -293,6 +301,68 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (_) => const _CommissionerSheet(),
+    );
+  }
+}
+
+class _LotteryDepthControl extends StatelessWidget {
+  final int pickCount;
+  final int maxPickCount;
+  final ValueChanged<int> onChanged;
+
+  const _LotteryDepthControl({
+    required this.pickCount,
+    required this.maxPickCount,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    final deterministic = maxPickCount - pickCount;
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+      decoration: BoxDecoration(
+        color: tk.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: tk.scoreboardLine),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                '🎱 LOTTERY PICKS',
+                style: tk.label.copyWith(color: tk.gold, fontSize: 12),
+              ),
+              const Spacer(),
+              Text(
+                '$pickCount of $maxPickCount',
+                style: tk.mono.copyWith(color: tk.led, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            deterministic == 0
+                ? 'Default: draw every pick until one manager remains.'
+                : 'Draw $pickCount picks, then fill $deterministic deterministically.',
+            style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
+          ),
+          Slider(
+            value: pickCount.toDouble(),
+            min: 0,
+            max: maxPickCount.toDouble(),
+            divisions: maxPickCount,
+            activeColor: tk.gold,
+            inactiveColor: tk.scoreboardLine,
+            label: '$pickCount lottery picks',
+            onChanged: (v) => onChanged(v.round()),
+          ),
+        ],
+      ),
     );
   }
 }

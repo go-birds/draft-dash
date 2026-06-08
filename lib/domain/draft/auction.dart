@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'draft_config.dart';
 import 'draft_mode.dart';
 import 'draft_result.dart';
 import 'participant.dart';
@@ -118,11 +119,26 @@ class AuctionState {
   }
 
   /// Once complete, the finished draft order.
-  DraftResult toResult({required int seed}) => DraftResult(
-    order: List<String>.from(assignedPicks),
-    seed: seed,
-    mode: DraftMode.bidding,
-    createdAt: DateTime.now(),
-    rosterSnapshot: List<Participant>.unmodifiable(participants),
-  );
+  DraftResult toResult({required int seed, DraftConfig? config}) {
+    final createdAt = DateTime.now();
+    final settings =
+        config ??
+        DraftConfig(
+          participants: participants,
+          mode: DraftMode.bidding,
+          weightingEnabled: false,
+        );
+    return DraftResult(
+      order: List<String>.from(assignedPicks),
+      seed: seed,
+      mode: DraftMode.bidding,
+      createdAt: createdAt,
+      rosterSnapshot: List<Participant>.unmodifiable(participants),
+      proofMetadata: DraftProofMetadata.fromConfig(
+        settings.copyWith(mode: DraftMode.bidding),
+        executedAt: createdAt,
+        seed: seed,
+      ),
+    );
+  }
 }

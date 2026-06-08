@@ -1,3 +1,4 @@
+import 'package:draft_race/domain/draft/draft_config.dart';
 import 'package:draft_race/domain/draft/draft_mode.dart';
 import 'package:draft_race/domain/draft/draft_result.dart';
 import 'package:draft_race/domain/draft/participant.dart';
@@ -12,6 +13,35 @@ void main() {
         mode: DraftMode.lottery,
         createdAt: DateTime.utc(2026, 6, 7),
         leagueName: 'Keeper League',
+        proofMetadata: DraftProofMetadata.fromConfig(
+          const DraftConfig(
+            mode: DraftMode.lottery,
+            weightingEnabled: false,
+            reverseOrder: true,
+            pins: {0: 'p2'},
+            lotteryPickCount: 1,
+            participants: [
+              Participant(
+                id: 'p1',
+                name: 'Nick',
+                number: '07',
+                colorValue: 0xFF3A86FF,
+                weight: 2,
+                budget: 90,
+              ),
+              Participant(
+                id: 'p2',
+                name: 'Jordan',
+                number: '23',
+                colorValue: 0xFFE63946,
+                weight: 3,
+                budget: 110,
+              ),
+            ],
+          ),
+          executedAt: DateTime.utc(2026, 6, 7, 20, 15, 30),
+          seed: 12,
+        ),
         rosterSnapshot: const [
           Participant(
             id: 'p1',
@@ -31,6 +61,19 @@ void main() {
       final decoded = DraftResult.fromJson(result.toJson());
 
       expect(decoded.rosterSnapshot, result.rosterSnapshot);
+      expect(decoded.proofMetadata, isNotNull);
+      expect(
+        decoded.proofMetadata!.executedAt,
+        DateTime.utc(2026, 6, 7, 20, 15, 30),
+      );
+      expect(decoded.proofMetadata!.seed, 12);
+      expect(decoded.proofMetadata!.settings.mode, DraftMode.lottery);
+      expect(decoded.proofMetadata!.settings.weightingEnabled, isFalse);
+      expect(decoded.proofMetadata!.settings.reverseOrder, isTrue);
+      expect(decoded.proofMetadata!.settings.pins, {0: 'p2'});
+      expect(decoded.proofMetadata!.settings.lotteryPickCount, 1);
+      expect(decoded.proofMetadata!.settings.participants.first.weight, 2);
+      expect(decoded.proofMetadata!.settings.participants.last.budget, 110);
       expect(decoded.resolve(const []).map((p) => p.name), ['Jordan', 'Nick']);
     });
 
@@ -43,6 +86,7 @@ void main() {
       });
 
       expect(decoded.rosterSnapshot, isEmpty);
+      expect(decoded.proofMetadata, isNull);
       expect(decoded.resolve(const []), isEmpty);
     });
 

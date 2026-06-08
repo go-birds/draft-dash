@@ -3,6 +3,7 @@ import 'dart:math';
 import 'draft_config.dart';
 import 'draft_mode.dart';
 import 'draft_result.dart';
+import 'nba_lottery.dart';
 import 'participant.dart';
 
 /// The heart of the app. Pure, deterministic given a seed.
@@ -21,9 +22,11 @@ class DraftEngine {
     final n = config.size;
     final rng = Random(seed);
 
-    // 1. Weighted permutation of ALL managers, best performer first.
-    //    key_i = u^(1/w_i); larger key sorts earlier.
-    final ranked = _weightedRanking(config, rng);
+    // 1. Weighted permutation of ALL managers, best performer first. Lottery
+    //    mode uses NBA-style 14-ball combinations for its top-three reveal.
+    final ranked = config.mode == DraftMode.lottery
+        ? NbaLottery.generate(config, seed: seed).order
+        : _weightedRanking(config, rng);
 
     // 2. baseOrder: pick order ignoring pins (reverse flips first<->last).
     final baseOrder = config.reverseOrder ? ranked.reversed.toList() : ranked;
@@ -59,12 +62,18 @@ class DraftEngine {
       'DraftEngine produced an invalid ordering',
     );
 
+    final createdAt = DateTime.now();
     return DraftResult(
       order: order,
       seed: seed,
       mode: config.mode,
-      createdAt: DateTime.now(),
+      createdAt: createdAt,
       rosterSnapshot: List<Participant>.unmodifiable(config.participants),
+      proofMetadata: DraftProofMetadata.fromConfig(
+        config,
+        executedAt: createdAt,
+        seed: seed,
+      ),
     );
   }
 

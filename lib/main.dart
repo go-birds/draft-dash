@@ -38,8 +38,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // Pause game timer when app is backgrounded.
-  // TODO: wire to GameController.deactivate() / .activate() once implemented.
+  // Keep the observer in place for future animated modes that may need to pause
+  // work while the app is backgrounded.
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
     switch (s) {

@@ -16,14 +16,32 @@ val keystoreProperties = Properties().apply {
     }
 }
 
-fun propertyOrEnv(propertyName: String, envName: String): String? =
+fun propertyOrEnv(propertyName: String, vararg envNames: String): String? =
     (keystoreProperties[propertyName] as? String)?.takeIf { it.isNotBlank() }
-        ?: System.getenv(envName)?.takeIf { it.isNotBlank() }
+        ?: envNames.firstNotNullOfOrNull { envName ->
+            System.getenv(envName)?.takeIf { it.isNotBlank() }
+        }
 
-val releaseStoreFilePath = propertyOrEnv("storeFile", "DRAFT_RACE_ANDROID_STORE_FILE")
-val releaseStorePassword = propertyOrEnv("storePassword", "DRAFT_RACE_ANDROID_STORE_PASSWORD")
-val releaseKeyAlias = propertyOrEnv("keyAlias", "DRAFT_RACE_ANDROID_KEY_ALIAS")
-val releaseKeyPassword = propertyOrEnv("keyPassword", "DRAFT_RACE_ANDROID_KEY_PASSWORD")
+val releaseStoreFilePath = propertyOrEnv(
+    "storeFile",
+    "DRAFT_DASH_ANDROID_STORE_FILE",
+    "DRAFT_RACE_ANDROID_STORE_FILE",
+)
+val releaseStorePassword = propertyOrEnv(
+    "storePassword",
+    "DRAFT_DASH_ANDROID_STORE_PASSWORD",
+    "DRAFT_RACE_ANDROID_STORE_PASSWORD",
+)
+val releaseKeyAlias = propertyOrEnv(
+    "keyAlias",
+    "DRAFT_DASH_ANDROID_KEY_ALIAS",
+    "DRAFT_RACE_ANDROID_KEY_ALIAS",
+)
+val releaseKeyPassword = propertyOrEnv(
+    "keyPassword",
+    "DRAFT_DASH_ANDROID_KEY_PASSWORD",
+    "DRAFT_RACE_ANDROID_KEY_PASSWORD",
+)
 val releaseSigningConfigured =
     listOf(releaseStoreFilePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword)
         .all { !it.isNullOrBlank() }
@@ -65,7 +83,7 @@ android {
         release {
             if (!releaseSigningConfigured) {
                 throw GradleException(
-                    "Release signing is not configured. Create android/key.properties or set DRAFT_RACE_ANDROID_* env vars."
+                    "Release signing is not configured. Create android/key.properties or set DRAFT_DASH_ANDROID_* env vars."
                 )
             }
             signingConfig = signingConfigs.getByName("release")

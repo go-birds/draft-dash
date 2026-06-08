@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:draft_race/domain/draft/auction.dart';
+import 'package:draft_race/domain/draft/draft_config.dart';
+import 'package:draft_race/domain/draft/draft_mode.dart';
 import 'package:draft_race/domain/draft/participant.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -60,6 +62,28 @@ void main() {
       expect(result.order.length, 4);
       expect(result.rosterSnapshot, a.participants);
       expect(result.resolve(const []).map((p) => p.name), hasLength(4));
+    });
+
+    test('captures proof metadata from the original bidding settings', () {
+      var a = AuctionState.initial(roster([100, 90]));
+      final cfg = DraftConfig(
+        participants: a.participants,
+        mode: DraftMode.bidding,
+        weightingEnabled: false,
+        pins: const {0: 'p1'},
+      );
+      a = a.resolveRound({'p0': 10, 'p1': 20});
+      a = a.resolveRound({'p0': 10});
+
+      final result = a.toResult(seed: 123, config: cfg);
+
+      expect(result.proofMetadata, isNotNull);
+      expect(result.proofMetadata!.executedAt, result.createdAt);
+      expect(result.proofMetadata!.seed, 123);
+      expect(result.proofMetadata!.settings.mode, DraftMode.bidding);
+      expect(result.proofMetadata!.settings.weightingEnabled, isFalse);
+      expect(result.proofMetadata!.settings.pins, {0: 'p1'});
+      expect(result.proofMetadata!.settings.participants, cfg.participants);
     });
 
     test('commissioner breaks ties in their favor', () {

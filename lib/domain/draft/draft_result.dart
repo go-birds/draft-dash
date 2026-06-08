@@ -1,5 +1,56 @@
+import 'draft_config.dart';
 import 'draft_mode.dart';
 import 'participant.dart';
+
+/// Audit-friendly metadata captured when a draft is executed.
+///
+/// The short proof code stays compact and deterministic. This metadata keeps
+/// the full settings snapshot that explains how that draft was run.
+class DraftProofMetadata {
+  final DateTime executedAt;
+  final int seed;
+  final DraftConfig settings;
+
+  const DraftProofMetadata({
+    required this.executedAt,
+    required this.seed,
+    required this.settings,
+  });
+
+  factory DraftProofMetadata.fromConfig(
+    DraftConfig settings, {
+    required DateTime executedAt,
+    required int seed,
+  }) => DraftProofMetadata(
+    executedAt: executedAt,
+    seed: seed,
+    settings: DraftConfig(
+      participants: List<Participant>.unmodifiable(settings.participants),
+      mode: settings.mode,
+      weightingEnabled: settings.weightingEnabled,
+      reverseOrder: settings.reverseOrder,
+      pins: Map<int, String>.unmodifiable(settings.pins),
+      lotteryPickCount: settings.lotteryPickCount,
+    ),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'executedAt': executedAt.toIso8601String(),
+    'seed': seed,
+    'settings': settings.toJson(),
+  };
+
+  static DraftProofMetadata fromJson(Map<String, dynamic> j) =>
+      DraftProofMetadata(
+        executedAt:
+            DateTime.tryParse((j['executedAt'] ?? '') as String) ??
+            DateTime.now(),
+        seed: (j['seed'] as num?)?.toInt() ?? 0,
+        settings: DraftConfig.fromJson(
+          Map<String, dynamic>.from((j['settings'] ?? const {}) as Map),
+        ),
+      );
+}
 
 /// The outcome of a draft: a final ordering of manager ids (index 0 == pick #1).
 ///
@@ -13,6 +64,7 @@ class DraftResult {
   final DateTime createdAt;
   final String? leagueName;
   final List<Participant> rosterSnapshot;
+  final DraftProofMetadata? proofMetadata;
 
   const DraftResult({
     required this.order,
@@ -21,6 +73,7 @@ class DraftResult {
     required this.createdAt,
     this.leagueName,
     this.rosterSnapshot = const [],
+    this.proofMetadata,
   });
 
   int get size => order.length;
@@ -79,6 +132,7 @@ class DraftResult {
     List<String>? order,
     String? leagueName,
     List<Participant>? rosterSnapshot,
+    DraftProofMetadata? proofMetadata,
   }) => DraftResult(
     order: order ?? this.order,
     seed: seed,
@@ -86,6 +140,7 @@ class DraftResult {
     createdAt: createdAt,
     leagueName: leagueName ?? this.leagueName,
     rosterSnapshot: rosterSnapshot ?? this.rosterSnapshot,
+    proofMetadata: proofMetadata ?? this.proofMetadata,
   );
 
   Map<String, dynamic> toJson() => {
@@ -96,6 +151,7 @@ class DraftResult {
     if (leagueName != null) 'leagueName': leagueName,
     if (rosterSnapshot.isNotEmpty)
       'rosterSnapshot': [for (final p in rosterSnapshot) p.toJson()],
+    if (proofMetadata != null) 'proofMetadata': proofMetadata!.toJson(),
   };
 
   static DraftResult fromJson(Map<String, dynamic> j) => DraftResult(
@@ -109,5 +165,10 @@ class DraftResult {
       for (final p in ((j['rosterSnapshot'] ?? []) as List))
         Participant.fromJson(Map<String, dynamic>.from(p as Map)),
     ],
+    proofMetadata: j['proofMetadata'] == null
+        ? null
+        : DraftProofMetadata.fromJson(
+            Map<String, dynamic>.from(j['proofMetadata'] as Map),
+          ),
   );
 }
