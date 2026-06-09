@@ -89,6 +89,50 @@ void main() {
     expect(find.text('Draft details unavailable'), findsOneWidget);
     expect(find.text('Nick'), findsNothing);
   });
+
+  testWidgets('result screen opens the proof explainer', (tester) async {
+    final container = await _container();
+    addTearDown(container.dispose);
+
+    final config = container.read(draftConfigProvider.notifier);
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    config.addManager('Taylor');
+    container.read(draftControllerProvider.notifier).run();
+
+    await tester.pumpWidget(_resultHarness(container));
+
+    await tester.tap(find.byTooltip('What this proves'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('What this proves'), findsOneWidget);
+    expect(find.textContaining('Proof code:'), findsOneWidget);
+    expect(find.textContaining('Executed at:'), findsOneWidget);
+    expect(find.textContaining('Settings metadata:'), findsOneWidget);
+    expect(find.textContaining('League Ledger:'), findsOneWidget);
+  });
+
+  testWidgets('result screen opens recap preview before copying', (
+    tester,
+  ) async {
+    final container = await _container();
+    addTearDown(container.dispose);
+
+    final config = container.read(draftConfigProvider.notifier);
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    config.addManager('Taylor');
+    container.read(draftControllerProvider.notifier).run();
+
+    await tester.pumpWidget(_resultHarness(container));
+
+    await tester.tap(find.text('COPY RECAP'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Share recap'), findsOneWidget);
+    expect(find.text('COPY SHORT RECAP'), findsOneWidget);
+    expect(find.text('COPY FULL PROOF RECAP'), findsOneWidget);
+  });
 }
 
 Future<ProviderContainer> _container() async {

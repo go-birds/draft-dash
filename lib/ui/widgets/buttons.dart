@@ -47,27 +47,35 @@ class PrimaryButton extends StatelessWidget {
                 ),
               ],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(
-                    icon,
-                    color: const Color(0xFF241500),
-                    size: fontSize + 4,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      color: const Color(0xFF241500),
+                      size: fontSize + 4,
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Anton',
+                        fontSize: fontSize,
+                        letterSpacing: .5,
+                        color: const Color(0xFF241500),
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 10),
                 ],
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Anton',
-                    fontSize: fontSize,
-                    letterSpacing: .5,
-                    color: const Color(0xFF241500),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -110,24 +118,32 @@ class GhostButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: tk.scoreboardLine),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: c, size: 18),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  letterSpacing: .8,
-                  color: c,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, color: c, size: 18),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      letterSpacing: .8,
+                      color: c,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

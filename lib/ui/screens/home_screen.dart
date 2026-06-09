@@ -23,6 +23,15 @@ class HomeScreen extends ConsumerWidget {
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => screen));
 
+    void startNewDraft() {
+      if (hasLeague) {
+        ref.read(draftConfigProvider.notifier).prepareNewDraft();
+      }
+      open(const SetupScreen());
+    }
+
+    void editSavedLeague() => open(const SetupScreen());
+
     return Scaffold(
       backgroundColor: tk.background,
       body: Stack(
@@ -46,87 +55,208 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           SafeArea(
-            child: Column(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
               children: [
-                const Spacer(flex: 3),
-                Text(
-                  'FANTASY FOOTBALL',
-                  style: tk.label.copyWith(color: tk.gold, letterSpacing: 5),
-                ),
                 const SizedBox(height: 6),
-                Text(
-                  'DRAFT',
-                  style: tk.displayLarge.copyWith(
-                    fontSize: 76,
-                    height: .86,
-                    letterSpacing: 1,
-                  ),
-                ),
-                Text(
-                  'RACE',
-                  style: tk.displayLarge.copyWith(
-                    fontSize: 76,
-                    height: .86,
-                    letterSpacing: 1,
-                    color: tk.gold,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'SETTLE IT ON THE FIELD',
-                  style: tk.label.copyWith(letterSpacing: 3),
-                ),
-                const Spacer(flex: 2),
-                const Text('🏈', style: TextStyle(fontSize: 92)),
-                const Spacer(flex: 3),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 28),
+                Center(
                   child: Column(
                     children: [
-                      PrimaryButton(
-                        hasLeague ? 'NEW DRAFT' : 'GET STARTED',
-                        icon: Icons.play_arrow_rounded,
-                        onPressed: () {
-                          if (hasLeague) {
-                            ref
-                                .read(draftConfigProvider.notifier)
-                                .prepareNewDraft();
-                          }
-                          open(const SetupScreen());
-                        },
+                      Text(
+                        'FANTASY FOOTBALL',
+                        style: tk.label.copyWith(
+                          color: tk.gold,
+                          letterSpacing: 5,
+                        ),
                       ),
-                      if (hasLeague) ...[
-                        const SizedBox(height: 12),
-                        GhostButton(
-                          '↺  ${league.isEmpty ? "LAST LEAGUE" : league.toUpperCase()}  ·  ${cfg.participants.length} MGRS',
-                          onPressed: () => open(const SetupScreen()),
+                      const SizedBox(height: 6),
+                      Text(
+                        'DRAFT',
+                        style: tk.displayLarge.copyWith(
+                          fontSize: 62,
+                          height: .86,
+                          letterSpacing: 1,
                         ),
-                        const SizedBox(height: 12),
-                        GhostButton(
-                          '📒  LEAGUE LEDGER  ·  ${cfg.ledgerEntries.length} ENTRIES',
-                          onPressed: () => open(const LeagueLedgerScreen()),
+                      ),
+                      Text(
+                        'RACE',
+                        style: tk.displayLarge.copyWith(
+                          fontSize: 62,
+                          height: .86,
+                          letterSpacing: 1,
+                          color: tk.gold,
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'SETTLE IT ON THE FIELD',
+                        style: tk.label.copyWith(letterSpacing: 3),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text('🏈', style: TextStyle(fontSize: 72)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _SectionCard(
+                  title: 'PRIMARY ACTION',
+                  icon: Icons.play_arrow_rounded,
+                  children: [
+                    Text(
+                      hasLeague
+                          ? 'Start a fresh draft from the current saved league.'
+                          : 'Create your league setup, then come back here to run your first draft.',
+                      style: tk.body.copyWith(color: tk.textMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    PrimaryButton(
+                      hasLeague ? 'NEW DRAFT' : 'CREATE LEAGUE',
+                      icon: Icons.play_arrow_rounded,
+                      onPressed: startNewDraft,
+                    ),
+                    if (hasLeague) ...[
                       const SizedBox(height: 12),
-                      Row(
+                      GhostButton(
+                        'EDIT SAVED LEAGUE',
+                        icon: Icons.edit_rounded,
+                        onPressed: editSavedLeague,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'NEW DRAFT clears the field with `prepareNewDraft()`. '
+                        'EDIT SAVED LEAGUE returns to the roster, mode, odds, and ledger you already saved.',
+                        style: tk.body.copyWith(
+                          color: tk.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        'You can still explore History, League Ledger, and Settings while you build the league.',
+                        style: tk.body.copyWith(
+                          color: tk.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _SectionCard(
+                  title: 'CURRENT LEAGUE SUMMARY',
+                  icon: Icons.sports_score_rounded,
+                  children: [
+                    if (hasLeague) ...[
+                      Text(
+                        league.isEmpty ? 'LAST LEAGUE' : league.toUpperCase(),
+                        style: tk.title.copyWith(fontSize: 22),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          Expanded(
-                            child: GhostButton(
-                              '🏆  HISTORY',
-                              onPressed: () => open(const HistoryScreen()),
-                            ),
+                          _SummaryChip(
+                            label: '${cfg.participants.length} managers',
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GhostButton(
-                              '⚙  SETTINGS',
-                              onPressed: () => open(const SettingsScreen()),
-                            ),
+                          _SummaryChip(label: cfg.mode.label.toUpperCase()),
+                          _SummaryChip(
+                            label: '${cfg.ledgerEntries.length} ledger entries',
+                          ),
+                          _SummaryChip(
+                            label: cfg.weightingEnabled
+                                ? 'handicap on'
+                                : 'even odds',
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      Text(
+                        cfg.reverseOrder
+                            ? 'Reverse order is on, so the weighted underdog gets the later pick.'
+                            : 'The saved league is ready to edit or draft again.',
+                        style: tk.body.copyWith(
+                          color: tk.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ] else ...[
+                      Text(
+                        'No saved league yet',
+                        style: tk.title.copyWith(fontSize: 22),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Here is the setup path for a first run:',
+                        style: tk.body.copyWith(color: tk.textMuted),
+                      ),
+                      const SizedBox(height: 10),
+                      for (final step in const [
+                        'Create league',
+                        'Add managers',
+                        'Choose reveal mode',
+                        'Run draft',
+                        'Save/share recap',
+                      ]) ...[
+                        _GuidanceStep(label: step),
+                        const SizedBox(height: 8),
+                      ],
                     ],
-                  ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _SectionCard(
+                  title: 'LEAGUE LEDGER',
+                  icon: Icons.receipt_long_rounded,
+                  children: [
+                    Text(
+                      hasLeague
+                          ? 'Track commissioner notes, pick locks, and season-long consequences before draft day.'
+                          : 'Use the ledger to record season notes once your league roster is in place.',
+                      style: tk.body.copyWith(color: tk.textMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    GhostButton(
+                      'OPEN LEAGUE LEDGER · ${cfg.ledgerEntries.length} ENTRIES',
+                      icon: Icons.receipt_long_rounded,
+                      onPressed: () => open(const LeagueLedgerScreen()),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _SectionCard(
+                  title: 'HISTORY',
+                  icon: Icons.history_rounded,
+                  children: [
+                    Text(
+                      'Saved draft boards live here so you can revisit, copy, or share the recap later.',
+                      style: tk.body.copyWith(color: tk.textMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    GhostButton(
+                      'OPEN HISTORY',
+                      icon: Icons.history_rounded,
+                      onPressed: () => open(const HistoryScreen()),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _SectionCard(
+                  title: 'SETTINGS',
+                  icon: Icons.settings_rounded,
+                  children: [
+                    Text(
+                      'Tweak the stadium look, game-day feedback, and saved league data from one place.',
+                      style: tk.body.copyWith(color: tk.textMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    GhostButton(
+                      'OPEN SETTINGS',
+                      icon: Icons.settings_rounded,
+                      onPressed: () => open(const SettingsScreen()),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -135,6 +265,124 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _SectionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: tk.surface.withValues(alpha: .95),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: tk.scoreboardLine),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .22),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: tk.gold),
+              const SizedBox(width: 8),
+              Text(title, style: tk.label.copyWith(color: tk.gold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  final String label;
+
+  const _SummaryChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: tk.scoreboardLine),
+      ),
+      child: Text(
+        label,
+        style: tk.label.copyWith(
+          fontSize: 11,
+          color: tk.textPrimary,
+          letterSpacing: .6,
+        ),
+      ),
+    );
+  }
+}
+
+class _GuidanceStep extends StatelessWidget {
+  final String label;
+
+  const _GuidanceStep({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: tk.gold.withValues(alpha: .16),
+            border: Border.all(color: tk.gold.withValues(alpha: .7)),
+          ),
+          child: Text(
+            '${_steps.indexOf(label) + 1}',
+            style: tk.label.copyWith(color: tk.gold, fontSize: 11),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text(label, style: tk.body.copyWith(fontSize: 13)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static const _steps = <String>[
+    'Create league',
+    'Add managers',
+    'Choose reveal mode',
+    'Run draft',
+    'Save/share recap',
+  ];
 }
 
 class _SkyAndTurf extends StatelessWidget {

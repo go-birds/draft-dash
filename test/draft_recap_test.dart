@@ -8,8 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('DraftRecap.format', () {
-    test('formats a league-ready recap with names and jersey numbers', () {
-      final recap = DraftRecap.format(
+    test('formats a full proof recap with proof metadata', () {
+      final recap = DraftRecap.formatFull(
         mode: DraftMode.race,
         leagueName: 'Sunday League',
         proofCode: 'DD-ABC-1234',
@@ -90,8 +90,46 @@ void main() {
       );
     });
 
+    test('formats a short share recap without proof metadata', () {
+      final recap = DraftRecap.formatShort(
+        mode: DraftMode.race,
+        leagueName: 'Sunday League',
+        proofCode: 'DD-ABC-1234',
+        ordered: const [
+          Participant(
+            id: 'p1',
+            name: 'Nick',
+            number: '07',
+            colorValue: 0xFF000000,
+          ),
+          Participant(
+            id: 'p2',
+            name: 'Jordan',
+            number: '23',
+            colorValue: 0xFF000000,
+          ),
+        ],
+      );
+
+      expect(
+        recap,
+        [
+          'Sunday League draft results',
+          'Mode: The Race',
+          'Proof code: DD-ABC-1234',
+          'First overall: Nick',
+          '',
+          'Draft board:',
+          '1. Nick (#07)',
+          '2. Jordan (#23)',
+          '',
+          'Settled with Draft Dash',
+        ].join('\n'),
+      );
+    });
+
     test('uses a generic title when the league name is blank', () {
-      final recap = DraftRecap.format(
+      final recap = DraftRecap.formatShort(
         mode: DraftMode.cards,
         leagueName: '   ',
         ordered: const [],

@@ -88,17 +88,22 @@ class HistoryScreen extends ConsumerWidget {
                     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
                 Future<void> copyRecap() async {
                   if (!boardReady) return;
-                  final recap = DraftRecap.format(
+                  final shortRecap = DraftRecap.formatShort(
+                    mode: r.mode,
+                    ordered: ordered,
+                    leagueName: r.leagueName,
+                  );
+                  final fullRecap = DraftRecap.formatFull(
                     mode: r.mode,
                     ordered: ordered,
                     leagueName: r.leagueName,
                     proofCode: r.proofCode,
                     proofMetadata: r.proofMetadata,
                   );
-                  await Clipboard.setData(ClipboardData(text: recap));
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Draft recap copied')),
+                  await _showRecapPreviewSheet(
+                    context,
+                    shortRecap: shortRecap,
+                    fullRecap: fullRecap,
                   );
                 }
 
@@ -242,18 +247,23 @@ class _SavedDraftDetailScreen extends StatelessWidget {
 
     Future<void> copyRecap() async {
       if (!boardReady) return;
-      final recap = DraftRecap.format(
+      final shortRecap = DraftRecap.formatShort(
+        mode: result.mode,
+        ordered: ordered,
+        leagueName: result.leagueName,
+      );
+      final fullRecap = DraftRecap.formatFull(
         mode: result.mode,
         ordered: ordered,
         leagueName: result.leagueName,
         proofCode: result.proofCode,
         proofMetadata: result.proofMetadata,
       );
-      await Clipboard.setData(ClipboardData(text: recap));
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
+      await _showRecapPreviewSheet(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Draft recap copied')));
+        shortRecap: shortRecap,
+        fullRecap: fullRecap,
+      );
     }
 
     return Scaffold(
@@ -273,6 +283,11 @@ class _SavedDraftDetailScreen extends StatelessWidget {
                   result: result,
                   champ: ordered.first,
                   date: date,
+                  onWhatThisProves: () => _showProofExplainerDialog(
+                    context,
+                    proofCode: result.proofCode,
+                    proofMetadata: result.proofMetadata,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 GhostButton(
@@ -303,11 +318,13 @@ class _SavedBoardHero extends StatelessWidget {
   final DraftResult result;
   final Participant champ;
   final String date;
+  final VoidCallback onWhatThisProves;
 
   const _SavedBoardHero({
     required this.result,
     required this.champ,
     required this.date,
+    required this.onWhatThisProves,
   });
 
   @override
@@ -343,6 +360,18 @@ class _SavedBoardHero extends StatelessWidget {
                 style: tk.displayLarge.copyWith(fontSize: 24),
               ),
               const Spacer(),
+              IconButton(
+                tooltip: 'What this proves',
+                onPressed: onWhatThisProves,
+                icon: Icon(Icons.help_outline_rounded, color: tk.textMuted),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 34,
+                  height: 34,
+                ),
+              ),
+              const SizedBox(width: 4),
               Text(
                 result.proofCode,
                 style: tk.mono.copyWith(fontSize: 12, color: tk.led),
@@ -395,6 +424,215 @@ class _SavedBoardHero extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showRecapPreviewSheet(
+  BuildContext context, {
+  required String shortRecap,
+  required String fullRecap,
+}) async {
+  final tk = context.tokens;
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: tk.background,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+    ),
+    builder: (sheetContext) {
+      Future<void> copyAndDismiss(String text, String message) async {
+        await Clipboard.setData(ClipboardData(text: text));
+        if (!sheetContext.mounted) return;
+        Navigator.of(sheetContext).pop();
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Share recap',
+                        style: tk.displayLarge.copyWith(fontSize: 22),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: Icon(Icons.close_rounded, color: tk.textMuted),
+                    ),
+                  ],
+                ),
+                Text(
+                  'Preview the text before copying. Short recap is built for sharing, while the full proof recap includes proof metadata for auditability.',
+                  style: tk.body.copyWith(color: tk.textMuted, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                _RecapPreviewBlock(
+                  label: 'SHORT RECAP',
+                  preview: shortRecap,
+                  buttonLabel: 'COPY SHORT RECAP',
+                  button: GhostButton(
+                    'COPY SHORT RECAP',
+                    icon: Icons.copy_rounded,
+                    height: 48,
+                    onPressed: () =>
+                        copyAndDismiss(shortRecap, 'Short recap copied'),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _RecapPreviewBlock(
+                  label: 'FULL PROOF RECAP',
+                  preview: fullRecap,
+                  buttonLabel: 'COPY FULL PROOF RECAP',
+                  button: PrimaryButton(
+                    'COPY FULL PROOF RECAP',
+                    icon: Icons.copy_rounded,
+                    height: 54,
+                    fontSize: 17,
+                    onPressed: () =>
+                        copyAndDismiss(fullRecap, 'Full proof recap copied'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+void _showProofExplainerDialog(
+  BuildContext context, {
+  required String proofCode,
+  DraftProofMetadata? proofMetadata,
+}) {
+  final tk = context.tokens;
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      final lines = DraftRecap.proofExplainerLines(
+        proofCode: proofCode,
+        proofMetadata: proofMetadata,
+      );
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 14, 24, 6),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: tk.gold.withValues(alpha: .14),
+                shape: BoxShape.circle,
+                border: Border.all(color: tk.gold.withValues(alpha: .35)),
+              ),
+              child: Icon(Icons.verified_rounded, color: tk.gold),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'What this proves',
+                style: tk.title.copyWith(fontSize: 20),
+              ),
+            ),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 420),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final line in lines) ...[
+                  Text(
+                    line,
+                    style: tk.body.copyWith(color: tk.textMuted, fontSize: 14),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text('Close', style: TextStyle(color: tk.textMuted)),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+class _RecapPreviewBlock extends StatelessWidget {
+  final String label;
+  final String preview;
+  final Widget button;
+  final String buttonLabel;
+
+  const _RecapPreviewBlock({
+    required this.label,
+    required this.preview,
+    required this.button,
+    required this.buttonLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: tk.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: tk.scoreboardLine),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: tk.label.copyWith(color: tk.gold, letterSpacing: 2),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 120, maxHeight: 220),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: tk.scoreboardLine),
+            ),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                preview,
+                style: tk.mono.copyWith(fontSize: 12, color: tk.textPrimary),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Semantics(button: true, label: buttonLabel, child: button),
         ],
       ),
     );

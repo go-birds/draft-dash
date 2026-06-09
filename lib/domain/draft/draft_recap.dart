@@ -6,12 +6,53 @@ import 'participant.dart';
 class DraftRecap {
   const DraftRecap._();
 
+  static String formatShort({
+    required DraftMode mode,
+    required List<Participant> ordered,
+    String? leagueName,
+    String? proofCode,
+  }) => _format(
+    mode: mode,
+    ordered: ordered,
+    leagueName: leagueName,
+    proofCode: proofCode,
+    proofMetadata: null,
+  );
+
   static String format({
     required DraftMode mode,
     required List<Participant> ordered,
     String? leagueName,
     String? proofCode,
     DraftProofMetadata? proofMetadata,
+  }) => formatFull(
+    mode: mode,
+    ordered: ordered,
+    leagueName: leagueName,
+    proofCode: proofCode,
+    proofMetadata: proofMetadata,
+  );
+
+  static String formatFull({
+    required DraftMode mode,
+    required List<Participant> ordered,
+    String? leagueName,
+    String? proofCode,
+    DraftProofMetadata? proofMetadata,
+  }) => _format(
+    mode: mode,
+    ordered: ordered,
+    leagueName: leagueName,
+    proofCode: proofCode,
+    proofMetadata: proofMetadata,
+  );
+
+  static String _format({
+    required DraftMode mode,
+    required List<Participant> ordered,
+    String? leagueName,
+    String? proofCode,
+    required DraftProofMetadata? proofMetadata,
   }) {
     final cleanLeague = leagueName?.trim();
     final title = cleanLeague == null || cleanLeague.isEmpty
@@ -39,6 +80,51 @@ class DraftRecap {
     lines.add('');
     lines.add('Settled with Draft Dash');
     return lines.join('\n');
+  }
+
+  static List<String> proofExplainerLines({
+    required String proofCode,
+    DraftProofMetadata? proofMetadata,
+  }) {
+    final lines = <String>[
+      'Proof code: $proofCode',
+      'This proof code is a deterministic fingerprint of the draft mode, seed, and final pick order.',
+    ];
+
+    if (proofMetadata == null) {
+      lines.add(
+        'No proof metadata was saved with this board, so only the proof code is available.',
+      );
+      return lines;
+    }
+
+    final settings = proofMetadata.settings;
+    final pins = settings.pins.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final managersById = {for (final p in settings.participants) p.id: p};
+    final pinSummary = pins.isEmpty
+        ? 'none'
+        : [
+            for (final e in pins)
+              'pick ${e.key + 1}=${managersById[e.value]?.name ?? e.value}',
+          ].join(', ');
+    final ledgerSummary = settings.ledgerEntries.isEmpty
+        ? 'none'
+        : [
+            for (final e in settings.ledgerEntries) e.summary(managersById),
+          ].join(' | ');
+
+    lines.add('Executed at: ${proofMetadata.executedAt.toIso8601String()}');
+    lines.add('Seed: ${proofMetadata.seed}');
+    lines.add(
+      'Settings metadata: mode ${settings.mode.label}, weighting ${settings.weightingEnabled ? 'on' : 'off'}, reverse order ${settings.reverseOrder ? 'on' : 'off'}, lottery picks ${settings.effectiveLotteryPickCount}',
+    );
+    lines.add('Commissioner pins: $pinSummary');
+    lines.add('League Ledger: $ledgerSummary');
+    lines.add(
+      'Manager settings: ${[for (final p in settings.participants) '${p.name} (#${p.number}, weight ${p.weight.toStringAsFixed(2)}, budget ${p.budget})'].join('; ')}',
+    );
+    return lines;
   }
 
   static List<String> _proofMetadataLines(DraftProofMetadata metadata) {

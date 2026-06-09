@@ -85,6 +85,19 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
       for (final e in chances.entries)
         if (e.value > 0) e.key,
     };
+    final ballLabel = currentRound == null
+        ? null
+        : 'BALL ${min(_ballsDrawn + 1, NbaLottery.ballsPerDraw)} OF ${NbaLottery.ballsPerDraw}';
+    final statusLabel = currentRound == null
+        ? null
+        : justWon == null
+        ? 'LIVE ODDS'
+        : 'PICK ${_roundIndex + 1} LOCKED';
+    final statusText = currentRound == null
+        ? null
+        : justWon == null
+        ? 'Update after every ball.'
+        : 'Winning combo ${currentRound.balls.join('-')}';
 
     Future<void> drawNext() async {
       if (currentRound == null || _pendingBall != null) return;
@@ -174,7 +187,7 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
               child: currentRound == null
                   ? Center(
                       child: Text(
-                        'Lottery combinations complete',
+                        'Pick locked. Remaining teams fill the board.',
                         style: tk.body.copyWith(color: tk.textMuted),
                       ),
                     )
@@ -200,27 +213,32 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'PICK ${_roundIndex + 1}',
-                              style: tk.label.copyWith(
-                                fontSize: 11,
-                                color: tk.textMuted,
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              child: Text(
+                                statusLabel!,
+                                key: ValueKey(statusLabel),
+                                style: tk.label.copyWith(
+                                  fontSize: 11,
+                                  color: tk.textMuted,
+                                ),
                               ),
                             ),
                             Text(
-                              justWon?.name.toUpperCase() ??
-                                  '$_ballsDrawn/${NbaLottery.ballsPerDraw} BALLS',
+                              justWon?.name.toUpperCase() ?? ballLabel!,
                               style: tk.displayLarge.copyWith(fontSize: 28),
                             ),
-                            Text(
-                              justWon == null
-                                  ? 'possible winners update after every ball'
-                                  : 'winning combo ${currentRound.balls.join('-')}',
-                              style: tk.body.copyWith(
-                                fontSize: 12,
-                                color: justWon == null
-                                    ? tk.textMuted
-                                    : tk.success,
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              child: Text(
+                                '$statusLabel · $statusText',
+                                key: ValueKey('$statusLabel · $statusText'),
+                                style: tk.body.copyWith(
+                                  fontSize: 12,
+                                  color: justWon == null
+                                      ? tk.textMuted
+                                      : tk.success,
+                                ),
                               ),
                             ),
                           ],
@@ -291,9 +309,9 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
                   : PrimaryButton(
                       _ballsDrawn >= NbaLottery.ballsPerDraw
                           ? _roundIndex + 1 >= rounds.length
-                                ? 'LOCK LOTTERY PICKS ✓'
+                                ? 'PICK LOCKED ✓'
                                 : 'NEXT PICK'
-                          : 'DRAW BALL ${_ballsDrawn + 1} 🎱',
+                          : 'DRAW BALL ${_ballsDrawn + 1} OF ${NbaLottery.ballsPerDraw} 🎱',
                       onPressed: drawNext,
                     ),
             ),
@@ -326,7 +344,7 @@ class _ProbabilityBoard extends StatelessWidget {
     if (!active) {
       return Center(
         child: Text(
-          'Top lottery picks are locked. Remaining teams fill the board.',
+          'Pick locked. Remaining teams fill the board.',
           textAlign: TextAlign.center,
           style: tk.body.copyWith(color: tk.textMuted, fontSize: 12),
         ),

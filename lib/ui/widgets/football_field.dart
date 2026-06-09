@@ -27,11 +27,17 @@ class RaceRunner {
 class FieldRacePainter extends CustomPainter {
   final List<RaceRunner> runners;
   final double leaderProgress;
+  final double introProgress;
+  final bool racing;
+  final bool finished;
   final DraftTokens tk;
 
   FieldRacePainter({
     required this.runners,
     required this.leaderProgress,
+    required this.introProgress,
+    required this.racing,
+    required this.finished,
     required this.tk,
   });
 
@@ -41,6 +47,10 @@ class FieldRacePainter extends CustomPainter {
     const visibleYards = 40.0;
     final cameraStart = (leaderProgress * 100 - 20).clamp(0.0, 60.0);
     double xForYard(double yard) => ((yard - cameraStart) / visibleYards) * w;
+    final intro = Curves.easeOutCubic.transform(introProgress.clamp(0.0, 1.0));
+    final finishPulse = finished
+        ? 1.0
+        : ((leaderProgress - 0.92) / 0.08).clamp(0.0, 1.0);
 
     // mowed stripes every five yards across the 40-yard camera window.
     for (var yard = cameraStart.floor() - 5; yard <= cameraStart + 45; yard++) {
@@ -57,6 +67,10 @@ class FieldRacePainter extends CustomPainter {
     // End zones just outside the 100-yard field.
     _drawEndZone(canvas, Rect.fromLTRB(xForYard(-10), 0, xForYard(0), h));
     _drawEndZone(canvas, Rect.fromLTRB(xForYard(100), 0, xForYard(110), h));
+
+    if (!racing) {
+      _drawIntroLane(canvas, Rect.fromLTRB(0, 0, xForYard(14), h), intro);
+    }
 
     // yard lines + hash marks + numbers
     final majorLine = Paint()
@@ -101,10 +115,93 @@ class FieldRacePainter extends CustomPainter {
     final laneH = h / n;
     for (var i = 0; i < n; i++) {
       final r = runners[i];
-      final cx = xForYard(100 * r.progress.clamp(0.0, 1.0));
+      final cx = racing
+          ? xForYard(100 * r.progress.clamp(0.0, 1.0))
+          : xForYard(
+              (-12 + (i * 0.9)) +
+                  ((4.0 - i * 0.12) - (-12 + (i * 0.9))) * intro,
+            );
       final cy = laneH * (i + 0.5);
       final s = min(laneH * 0.78, 78.0);
       _drawRunner(canvas, Offset(cx, cy), s, r);
+    }
+
+    if (finishPulse > 0) {
+      _drawFinishGlow(canvas, xForYard(100), h, finishPulse);
+    }
+  }
+
+  void _drawIntroLane(Canvas canvas, Rect rect, double intro) {
+    final glow = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [
+          Colors.black.withValues(alpha: .40 + .18 * intro),
+          Colors.transparent,
+        ],
+      ).createShader(rect);
+    canvas.drawRect(rect, glow);
+
+    final guide = Paint()
+      ..color = Colors.white.withValues(alpha: .16 + .16 * intro)
+      ..strokeWidth = 2;
+    final x = rect.right - 2;
+    canvas.drawLine(Offset(x, rect.top + 8), Offset(x, rect.bottom - 8), guide);
+    for (var i = 0; i < 3; i++) {
+      final dy = rect.top + rect.height * (0.22 + i * 0.23);
+      canvas.drawLine(
+        Offset(rect.left + 16, dy),
+        Offset(rect.left + rect.width - 18, dy),
+        Paint()
+          ..color = tk.gold.withValues(alpha: .08 + .09 * intro)
+          ..strokeWidth = 1.4
+          ..style = PaintingStyle.stroke,
+      );
+    }
+    _text(
+      canvas,
+      'LANE INTRO',
+      Offset(rect.left + 54, rect.top + 28),
+      18,
+      tk.gold.withValues(alpha: .85),
+      bold: true,
+      spacing: 2,
+    );
+  }
+
+  void _drawFinishGlow(Canvas canvas, double goalX, double h, double pulse) {
+    final goalLine = Paint()
+      ..color = tk.gold.withValues(alpha: .35 + .4 * pulse)
+      ..strokeWidth = 5 + 6 * pulse;
+    canvas.drawLine(Offset(goalX, 0), Offset(goalX, h), goalLine);
+
+    final glowRect = Rect.fromLTRB(goalX - 26, 0, goalX + 48, h);
+    canvas.drawRect(
+      glowRect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            tk.gold.withValues(alpha: .02),
+            tk.gold.withValues(alpha: .18 + .22 * pulse),
+            Colors.white.withValues(alpha: .12 + .12 * pulse),
+          ],
+          stops: const [0.0, 0.64, 1.0],
+        ).createShader(glowRect),
+    );
+
+    final burst = Paint()
+      ..color = Colors.white.withValues(alpha: .28 * pulse)
+      ..strokeWidth = 2;
+    for (var i = 0; i < 6; i++) {
+      final laneY = h * (0.15 + i * 0.14);
+      canvas.drawLine(
+        Offset(goalX - 12 - i * 3, laneY),
+        Offset(goalX + 28 + i * 4, laneY),
+        burst,
+      );
     }
   }
 

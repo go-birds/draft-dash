@@ -20,8 +20,9 @@ class RaceScreen extends ConsumerStatefulWidget {
 }
 
 class _RaceScreenState extends ConsumerState<RaceScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _race;
+  late final AnimationController _intro;
   late final List<Participant> _lineup; // lane order (roster order)
   final Map<String, double> _finish =
       {}; // id -> fraction of race when it finishes
@@ -67,6 +68,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
         )..addStatusListener((s) {
           if (s == AnimationStatus.completed) _onFinish();
         });
+    _intro = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..forward();
 
     _startCountdown();
   }
@@ -102,6 +107,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
   void dispose() {
     _countTimer?.cancel();
     _race.dispose();
+    _intro.dispose();
     unawaited(SystemChrome.setPreferredOrientations(DeviceOrientation.values));
     super.dispose();
   }
@@ -122,71 +128,77 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     final tk = context.tokens;
     return Scaffold(
       backgroundColor: tk.background,
-      body: AnimatedBuilder(
-        animation: _race,
-        builder: (context, _) {
-          final t = _racing ? _race.value : 0.0;
-          // current progress per participant
-          final prog = {for (final p in _lineup) p.id: _progressFor(p.id, t)};
-          final leaderProgress = prog.values.fold<double>(
-            0,
-            (best, value) => value > best ? value : best,
-          );
-          final runners = [
-            for (var i = 0; i < _n; i++)
-              RaceRunner(
-                color: Color(_lineup[i].colorValue),
-                number: _lineup[i].number,
-                progress: prog[_lineup[i].id]!,
-                stride: _racing ? t * 42 + i * .8 : 0,
-                leader: false,
-              ),
-          ];
-          // leader = max progress
-          String? leaderId;
-          double best = -1;
-          prog.forEach((id, v) {
-            if (v > best) {
-              best = v;
-              leaderId = id;
-            }
-          });
-          final runnersWithLeader = [
-            for (var i = 0; i < runners.length; i++)
-              _lineup[i].id == leaderId
-                  ? RaceRunner(
-                      color: runners[i].color,
-                      number: runners[i].number,
-                      progress: runners[i].progress,
-                      stride: runners[i].stride,
-                      leader: true,
-                    )
-                  : runners[i],
-          ];
-
-          final leader = _lineup.firstWhere(
-            (p) => p.id == leaderId,
-            orElse: () => _lineup.first,
-          );
-          final liveOrder = [..._lineup]
-            ..sort((a, b) => prog[b.id]!.compareTo(prog[a.id]!));
-
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: FieldRacePainter(
-                    runners: runnersWithLeader,
-                    leaderProgress: leaderProgress,
-                    tk: tk,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return AnimatedBuilder(
+            animation: Listenable.merge([_race, _intro]),
+            builder: (context, _) {
+              final t = _racing ? _race.value : 0.0;
+              final introT = Curves.easeOutCubic.transform(
+                _intro.value.clamp(0.0, 1.0),
+              );
+              // current progress per participant
+              final prog = {
+                for (final p in _lineup) p.id: _progressFor(p.id, t),
+              };
+              final leaderProgress = prog.values.fold<double>(
+                0,
+                (best, value) => value > best ? value : best,
+              );
+              final runners = [
+                for (var i = 0; i < _n; i++)
+                  RaceRunner(
+                    color: Color(_lineup[i].colorValue),
+                    number: _lineup[i].number,
+                    progress: prog[_lineup[i].id]!,
+                    stride: _racing ? t * 42 + i * .8 : 0,
+                    leader: _racing && prog[_lineup[i].id]! == leaderProgress,
                   ),
-                ),
-              ),
-              _Scoreboard(leader: leader, t: t),
-              _OrderTicker(order: liveOrder),
-              if (_countdown > -1 && !_racing) _Countdown(value: _countdown),
-              if (_finished) _FinishFlash(winner: liveOrder.first),
-            ],
+              ];
+
+              final leader = _lineup.firstWhere(
+                (p) => prog[p.id] == leaderProgress,
+                orElse: () => _lineup.first,
+              );
+              final liveOrder = [..._lineup]
+                ..sort((a, b) => prog[b.id]!.compareTo(prog[a.id]!));
+
+              final scoreboardWidth = min(constraints.maxWidth * .46, 360.0);
+              final tickerWidth = min(constraints.maxWidth * .66, 640.0);
+              final edgeInset = constraints.maxWidth > 900 ? 20.0 : 14.0;
+
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: FieldRacePainter(
+                        runners: runners,
+                        leaderProgress: leaderProgress,
+                        introProgress: introT,
+                        racing: _racing,
+                        finished: _finished,
+                        tk: tk,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: edgeInset,
+                    top: edgeInset,
+                    width: scoreboardWidth,
+                    child: _Scoreboard(leader: leader, t: t),
+                  ),
+                  Positioned(
+                    right: edgeInset,
+                    bottom: edgeInset,
+                    width: tickerWidth,
+                    child: _OrderTicker(order: liveOrder),
+                  ),
+                  if (_countdown > -1 && !_racing)
+                    _Countdown(value: _countdown, introProgress: introT),
+                  if (_finished) _FinishFlash(winner: liveOrder.first),
+                ],
+              );
+            },
           );
         },
       ),
@@ -203,72 +215,63 @@ class _Scoreboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tk = context.tokens;
     final secs = (t * 6).toStringAsFixed(1);
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: SafeArea(
-        bottom: false,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          height: 62,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: tk.scoreboard.withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: tk.scoreboardLine),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: tk.led,
-                  boxShadow: [BoxShadow(color: tk.led, blurRadius: 8)],
-                ),
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: tk.scoreboard.withValues(alpha: .92),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: tk.scoreboardLine),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: tk.led,
+                boxShadow: [BoxShadow(color: tk.led, blurRadius: 6)],
               ),
-              const SizedBox(width: 8),
-              Text('LIVE', style: tk.label.copyWith(fontSize: 13)),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'LEADER',
-                      style: tk.label.copyWith(
-                        fontSize: 10,
-                        color: tk.textMuted,
-                      ),
-                    ),
-                    Text(
-                      '${leader.name.toUpperCase()} · #${leader.number}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tk.displayLarge.copyWith(
-                        fontSize: 20,
-                        color: tk.gold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
+            ),
+            const SizedBox(width: 7),
+            Text('LIVE', style: tk.label.copyWith(fontSize: 12)),
+            Expanded(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    '0:${secs.padLeft(4, '0')}',
-                    style: tk.displayLarge.copyWith(fontSize: 22),
+                    'LEADER',
+                    style: tk.label.copyWith(fontSize: 10, color: tk.textMuted),
                   ),
                   Text(
-                    'CLOCK',
-                    style: tk.label.copyWith(fontSize: 9, color: tk.textMuted),
+                    '${leader.name.toUpperCase()} · #${leader.number}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tk.displayLarge.copyWith(
+                      fontSize: 18,
+                      color: tk.gold,
+                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '0:${secs.padLeft(4, '0')}',
+                  style: tk.displayLarge.copyWith(fontSize: 20),
+                ),
+                Text(
+                  'CLOCK',
+                  style: tk.label.copyWith(fontSize: 8, color: tk.textMuted),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -282,62 +285,56 @@ class _OrderTicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tk = context.tokens;
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-          decoration: BoxDecoration(
-            color: tk.scoreboard.withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: tk.scoreboardLine),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'RUNNING ORDER',
-                style: tk.label.copyWith(fontSize: 10, color: tk.textMuted),
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 9, 14, 10),
+        decoration: BoxDecoration(
+          color: tk.scoreboard.withValues(alpha: .92),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: tk.scoreboardLine),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'RUNNING ORDER',
+              style: tk.label.copyWith(fontSize: 10, color: tk.textMuted),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 28,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: order.length,
+                separatorBuilder: (_, i) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final p = order[i];
+                  final first = i == 0;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      color: tk.surfaceElevated,
+                      border: Border.all(
+                        color: first ? tk.gold : tk.scoreboardLine,
+                      ),
+                    ),
+                    child: Text(
+                      '${i + 1} · ${p.name}',
+                      style: tk.body.copyWith(
+                        fontSize: 11,
+                        color: first ? tk.gold : tk.textPrimary,
+                      ),
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 30,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: order.length,
-                  separatorBuilder: (_, i) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) {
-                    final p = order[i];
-                    final first = i == 0;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        color: tk.surfaceElevated,
-                        border: Border.all(
-                          color: first ? tk.gold : tk.scoreboardLine,
-                        ),
-                      ),
-                      child: Text(
-                        '${i + 1} · ${p.name}',
-                        style: tk.body.copyWith(
-                          fontSize: 12,
-                          color: first ? tk.gold : tk.textPrimary,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -346,22 +343,45 @@ class _OrderTicker extends StatelessWidget {
 
 class _Countdown extends StatelessWidget {
   final int value;
-  const _Countdown({required this.value});
+  final double introProgress;
+  const _Countdown({required this.value, required this.introProgress});
 
   @override
   Widget build(BuildContext context) {
     final tk = context.tokens;
     final label = value <= 0 ? 'GO!' : '$value';
+    final banner = switch (value) {
+      3 => 'LANES SET',
+      2 => 'RUNNERS TO THE LINE',
+      1 => 'READY ON YOUR MARK',
+      _ => 'GO!',
+    };
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withValues(alpha: .35),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: tk.displayLarge.copyWith(
-            fontSize: value <= 0 ? 96 : 130,
-            color: value <= 0 ? tk.led : tk.gold,
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0, -0.05),
+            radius: .9,
+            colors: [
+              Colors.black.withValues(alpha: .18 + introProgress * .12),
+              Colors.black.withValues(alpha: .42),
+            ],
           ),
+        ),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(banner, style: tk.label.copyWith(color: tk.textPrimary)),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: tk.displayLarge.copyWith(
+                fontSize: value <= 0 ? 96 : 130,
+                color: value <= 0 ? tk.led : tk.gold,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -377,21 +397,47 @@ class _FinishFlash extends StatelessWidget {
     final tk = context.tokens;
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withValues(alpha: .45),
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0.05, -0.15),
+            radius: 1.0,
+            colors: [
+              tk.gold.withValues(alpha: .28),
+              Colors.black.withValues(alpha: .52),
+            ],
+            stops: const [0.0, 1.0],
+          ),
+        ),
         alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '🏁 TOUCHDOWN',
+              'PHOTO FINISH',
               style: tk.label.copyWith(color: tk.gold, letterSpacing: 4),
             ),
             const SizedBox(height: 8),
-            Text(
-              winner.name.toUpperCase(),
-              style: tk.displayLarge.copyWith(fontSize: 46),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                color: tk.scoreboard.withValues(alpha: .88),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: tk.gold, width: 1.4),
+                boxShadow: [
+                  BoxShadow(
+                    color: tk.gold.withValues(alpha: .32),
+                    blurRadius: 24,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Text(
+                winner.name.toUpperCase(),
+                style: tk.displayLarge.copyWith(fontSize: 44),
+              ),
             ),
-            Text('GETS PICK #1', style: tk.title.copyWith(color: tk.gold)),
+            const SizedBox(height: 8),
+            Text('CLAIMS PICK #1', style: tk.title.copyWith(color: tk.gold)),
           ],
         ),
       ),

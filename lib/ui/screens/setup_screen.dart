@@ -134,126 +134,187 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
                 children: [
-                  _sectionLabel(tk, 'PICK YOUR FORMAT'),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.32,
-                    children: [
-                      for (final m in DraftMode.values)
-                        ModeCard(
-                          emoji: _emoji[m]!,
-                          title: m.label,
-                          blurb: m.blurb,
-                          selected: cfg.mode == m,
-                          onTap: () {
-                            ctrl.setMode(m);
-                            setState(() {});
-                          },
-                        ),
-                    ],
-                  ),
-
-                  // options row
-                  Row(
-                    children: [
-                      _sectionLabel(
-                        tk,
-                        cfg.mode == DraftMode.bidding
-                            ? 'MANAGERS & BUDGETS'
-                            : 'MANAGERS & ODDS',
-                      ),
-                      const Spacer(),
-                      if (cfg.mode != DraftMode.bidding)
-                        _toggle(
-                          tk,
-                          '⚖ HANDICAP',
-                          cfg.weightingEnabled,
-                          (v) => ctrl.setWeightingEnabled(v),
-                        ),
-                    ],
-                  ),
-                  if (cfg.mode != DraftMode.bidding && cfg.weightingEnabled)
-                    _toggle(
-                      tk,
-                      '🔁 REVERSE (worst picks first)',
-                      cfg.reverseOrder,
-                      (v) => ctrl.setReverseOrder(v),
-                      full: true,
-                    ),
-
-                  if (cfg.mode == DraftMode.lottery &&
-                      cfg.participants.length >= 2)
-                    _LotteryDepthControl(
-                      pickCount: cfg.effectiveLotteryPickCount,
-                      maxPickCount: cfg.participants.length - 1,
-                      onChanged: ctrl.setLotteryPickCount,
-                    ),
-
-                  const SizedBox(height: 10),
-                  for (final p in cfg.participants)
-                    ManagerTile(
-                      key: ValueKey(p.id),
-                      p: p,
-                      mode: cfg.mode,
-                      oddsPct: odds[p.id] ?? 0,
-                      weightingEnabled: cfg.weightingEnabled,
-                    ),
-
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GhostButton(
-                          '＋ ADD MANAGER',
-                          height: 46,
-                          onPressed: ctrl.addManager,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      SizedBox(
-                        width: 150,
-                        child: GhostButton(
-                          pinned
-                              ? '🔒 RIGGED (${cfg.pins.length})'
-                              : '🔒 COMMISH',
-                          height: 46,
-                          textColor: tk.gold,
-                          onPressed: () => _openCommish(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  GhostButton(
-                    '📒 LEAGUE LEDGER (${cfg.ledgerEntries.length})',
-                    height: 46,
-                    textColor: cfg.ledgerEntries.isEmpty ? null : tk.gold,
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const LeagueLedgerScreen(),
-                      ),
+                  _panel(
+                    tk,
+                    title: 'FORMAT',
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.98,
+                      children: [
+                        for (final m in DraftMode.values)
+                          ModeCard(
+                            emoji: _emoji[m]!,
+                            title: m.label,
+                            blurb: m.blurb,
+                            bestFor: _modeInfo[m]!.bestFor,
+                            selected: cfg.mode == m,
+                            onTap: () {
+                              ctrl.setMode(m);
+                              setState(() {});
+                            },
+                            onInfoTap: () => _openModeInfo(context, m),
+                          ),
+                      ],
                     ),
                   ),
-                  if (cfg.weightingEnabled &&
-                      cfg.mode != DraftMode.bidding) ...[
-                    const SizedBox(height: 12),
-                    Center(
-                      child: TextButton(
-                        onPressed: ctrl.resetOdds,
-                        child: Text(
-                          'Reset odds to even',
+                  _panel(
+                    tk,
+                    title: 'MANAGERS',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final p in cfg.participants) ...[
+                          ManagerTile(
+                            key: ValueKey(p.id),
+                            p: p,
+                            mode: cfg.mode,
+                            oddsPct: odds[p.id] ?? 0,
+                            weightingEnabled: cfg.weightingEnabled,
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GhostButton(
+                                '＋ ADD MANAGER',
+                                height: 46,
+                                onPressed: ctrl.addManager,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  _panel(
+                    tk,
+                    title: 'ODDS',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (cfg.mode == DraftMode.bidding)
+                          Text(
+                            'Auction mode uses budgets instead of odds.',
+                            style: tk.body.copyWith(
+                              fontSize: 13,
+                              color: tk.textMuted,
+                            ),
+                          )
+                        else ...[
+                          _toggle(
+                            tk,
+                            '⚖ HANDICAP',
+                            cfg.weightingEnabled,
+                            (v) => ctrl.setWeightingEnabled(v),
+                          ),
+                          if (cfg.weightingEnabled) ...[
+                            const SizedBox(height: 2),
+                            _toggle(
+                              tk,
+                              '🔁 REVERSE (worst picks first)',
+                              cfg.reverseOrder,
+                              (v) => ctrl.setReverseOrder(v),
+                              full: true,
+                            ),
+                            const SizedBox(height: 10),
+                            Center(
+                              child: TextButton(
+                                onPressed: ctrl.resetOdds,
+                                child: Text(
+                                  'Reset odds to even',
+                                  style: tk.body.copyWith(
+                                    fontSize: 13,
+                                    color: tk.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                  ),
+                  _panel(
+                    tk,
+                    title: 'LOTTERY OPTIONS',
+                    child:
+                        cfg.mode == DraftMode.lottery &&
+                            cfg.participants.length >= 2
+                        ? _LotteryDepthControl(
+                            pickCount: cfg.effectiveLotteryPickCount,
+                            maxPickCount: cfg.participants.length - 1,
+                            onChanged: ctrl.setLotteryPickCount,
+                          )
+                        : Text(
+                            cfg.mode == DraftMode.lottery
+                                ? 'Add at least 2 managers to adjust lottery depth.'
+                                : 'Lottery depth applies when Lottery is selected.',
+                            style: tk.body.copyWith(
+                              fontSize: 13,
+                              color: tk.textMuted,
+                            ),
+                          ),
+                  ),
+                  _panel(
+                    tk,
+                    title: 'COMMISSIONER',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lock exact picks before the draw starts.',
                           style: tk.body.copyWith(
                             fontSize: 13,
                             color: tk.textMuted,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: GhostButton(
+                            pinned
+                                ? '🔒 RIGGED (${cfg.pins.length})'
+                                : '🔒 COMMISH',
+                            height: 46,
+                            textColor: tk.gold,
+                            onPressed: () => _openCommish(context),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                  _panel(
+                    tk,
+                    title: 'LEAGUE LEDGER',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Record penalties, boosts, locks, and notes.',
+                          style: tk.body.copyWith(
+                            fontSize: 13,
+                            color: tk.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        GhostButton(
+                          '📒 LEAGUE LEDGER (${cfg.ledgerEntries.length})',
+                          height: 46,
+                          textColor: cfg.ledgerEntries.isEmpty ? null : tk.gold,
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const LeagueLedgerScreen(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -269,9 +330,26 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
-  Widget _sectionLabel(DraftTokens tk, String s) => Padding(
-    padding: const EdgeInsets.only(top: 16, bottom: 10),
-    child: Text(s, style: tk.label.copyWith(color: tk.gold)),
+  Widget _panel(
+    DraftTokens tk, {
+    required String title,
+    required Widget child,
+  }) => Container(
+    margin: const EdgeInsets.only(bottom: 14),
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+    decoration: BoxDecoration(
+      color: tk.surfaceElevated,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: tk.scoreboardLine),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: tk.label.copyWith(color: tk.gold)),
+        const SizedBox(height: 12),
+        child,
+      ],
+    ),
   );
 
   Widget _toggle(
@@ -313,6 +391,18 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (_) => const _CommissionerSheet(),
+    );
+  }
+
+  void _openModeInfo(BuildContext context, DraftMode mode) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.tokens.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (_) => _ModeDetailSheet(mode: mode),
     );
   }
 }
@@ -562,3 +652,154 @@ class _CommissionerSheet extends ConsumerWidget {
     );
   }
 }
+
+class _ModeDetailSheet extends StatelessWidget {
+  final DraftMode mode;
+
+  const _ModeDetailSheet({required this.mode});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    final copy = _modeInfo[mode]!;
+
+    return DraggableScrollableSheet(
+      key: ValueKey('mode-detail-${mode.name}'),
+      expand: false,
+      initialChildSize: .72,
+      maxChildSize: .94,
+      builder: (_, scroll) => ListView(
+        controller: scroll,
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        children: [
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: tk.textMuted,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            mode.label.toUpperCase(),
+            style: tk.displayLarge.copyWith(fontSize: 28, color: tk.gold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Best for ${copy.bestFor}.',
+            style: tk.title.copyWith(fontSize: 16, color: tk.ice),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            copy.summary,
+            key: ValueKey('mode-detail-summary-${mode.name}'),
+            style: tk.body.copyWith(
+              fontSize: 14,
+              color: tk.textMuted,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 18),
+          for (final bullet in copy.bullets) ...[
+            _DetailBullet(text: bullet),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailBullet extends StatelessWidget {
+  final String text;
+
+  const _DetailBullet({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: tk.surfaceElevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: tk.scoreboardLine),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('•', style: tk.title.copyWith(color: tk.gold, fontSize: 20)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: tk.body.copyWith(
+                fontSize: 13,
+                color: tk.textPrimary,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeInfo {
+  final String bestFor;
+  final String summary;
+  final List<String> bullets;
+
+  const _ModeInfo({
+    required this.bestFor,
+    required this.summary,
+    required this.bullets,
+  });
+}
+
+const _modeInfo = {
+  DraftMode.race: _ModeInfo(
+    bestFor: 'a loud, fast reveal night',
+    summary:
+        'The precomputed order gets turned into a race animation. Every manager is a runner, and the first one across the finish line gets pick #1.',
+    bullets: [
+      'Use this when you want the reveal to feel like a finish-line sprint.',
+      'The draft order is already set before the animation starts.',
+      'Each pick is revealed in sequence until the board is complete.',
+    ],
+  ),
+  DraftMode.cards: _ModeInfo(
+    bestFor: 'simple, low-friction reveal sessions',
+    summary:
+        'Card Flip is the cleanest way to show a draft order: one card, one pick, one reveal at a time.',
+    bullets: [
+      'This mode is ideal when you want the reveal to stay quick and readable.',
+      'The draft result is precomputed, then flipped out card by card.',
+      'Every manager gets revealed in the order already decided by the engine.',
+    ],
+  ),
+  DraftMode.lottery: _ModeInfo(
+    bestFor: 'NBA-style weighted lottery drama',
+    summary:
+        'Lottery mode uses the NBA process: 14 balls, 4-ball combinations, and 1,000 assigned combinations after the 11-12-13-14 combination is ignored. Lottery picks are drawn first, then any remaining slots are filled deterministically.',
+    bullets: [
+      'Each manager gets a share of the 1,000 combinations based on weight when handicap odds are enabled.',
+      'The draw pulls 4 balls at a time from 14 balls, just like the NBA-style process.',
+      'Repeated winners are skipped during the lottery draw, so top picks stay unique.',
+    ],
+  ),
+  DraftMode.bidding: _ModeInfo(
+    bestFor: 'live, strategic ColemanBucks auctions',
+    summary:
+        'Auction mode sells the draft from pick #1 downward. Managers bid with their remaining budgets, the highest bid wins, and the budget payment carries forward to the next round.',
+    bullets: [
+      'Each round is a sealed-bid auction for the current pick.',
+      'Winning managers pay their winning bid out of their remaining budget.',
+      'The draft keeps moving until every pick has been sold.',
+    ],
+  ),
+};

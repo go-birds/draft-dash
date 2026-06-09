@@ -150,13 +150,14 @@ class _LedgerCard extends ConsumerWidget {
       LedgerEntryType.pickLock => tk.gold,
       LedgerEntryType.note => tk.ice,
     };
-    final effect = switch (entry.type) {
+    final impact = switch (entry.type) {
       LedgerEntryType.oddsBoost =>
-        '+${entry.weightDelta.abs().toStringAsFixed(1)}x odds',
+        'boosts odds by +${entry.weightDelta.abs().toStringAsFixed(1)}x',
       LedgerEntryType.oddsPenalty =>
-        '-${entry.weightDelta.abs().toStringAsFixed(1)}x odds',
-      LedgerEntryType.pickLock => 'pick #${(entry.pickIndex ?? 0) + 1}',
-      LedgerEntryType.note => 'note',
+        'penalizes odds by -${entry.weightDelta.abs().toStringAsFixed(1)}x',
+      LedgerEntryType.pickLock =>
+        'locks draft pick #${(entry.pickIndex ?? 0) + 1}',
+      LedgerEntryType.note => 'commissioner note only',
     };
 
     return Container(
@@ -188,7 +189,7 @@ class _LedgerCard extends ConsumerWidget {
                 Text(entry.title, style: tk.title.copyWith(fontSize: 17)),
                 const SizedBox(height: 4),
                 Text(
-                  '${managerName ?? "Unknown manager"} · $effect',
+                  '${managerName ?? "Unknown manager"} · Draft-day impact: $impact',
                   style: tk.label.copyWith(fontSize: 11, color: accent),
                 ),
                 if (entry.notes.trim().isNotEmpty) ...[
@@ -280,6 +281,52 @@ class _LedgerEntrySheetState extends ConsumerState<_LedgerEntrySheet> {
               style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold),
             ),
             const SizedBox(height: 12),
+            Text(
+              'Quick templates',
+              style: tk.label.copyWith(color: tk.textMuted),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _TemplateChip(
+                  label: 'Last-place penalty',
+                  onPressed: () => _applyTemplate(
+                    type: LedgerEntryType.oddsPenalty,
+                    title: 'Last-place penalty',
+                    notes: 'Penalize the manager who finishes last.',
+                    magnitude: .5,
+                  ),
+                ),
+                _TemplateChip(
+                  label: 'Consolation boost',
+                  onPressed: () => _applyTemplate(
+                    type: LedgerEntryType.oddsBoost,
+                    title: 'Consolation boost',
+                    notes: 'Reward the consolation bracket winner.',
+                    magnitude: .5,
+                  ),
+                ),
+                _TemplateChip(
+                  label: 'Traded / locked pick',
+                  onPressed: () => _applyTemplate(
+                    type: LedgerEntryType.pickLock,
+                    title: 'Traded / locked pick',
+                    notes: 'Keep this pick locked to the agreed manager.',
+                  ),
+                ),
+                _TemplateChip(
+                  label: 'Commissioner note',
+                  onPressed: () => _applyTemplate(
+                    type: LedgerEntryType.note,
+                    title: 'Commissioner note',
+                    notes: 'League note for draft-day context.',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _managerId,
               dropdownColor: tk.surface,
@@ -331,7 +378,7 @@ class _LedgerEntrySheetState extends ConsumerState<_LedgerEntrySheet> {
             if (_type == LedgerEntryType.oddsBoost ||
                 _type == LedgerEntryType.oddsPenalty) ...[
               Text(
-                '${_type == LedgerEntryType.oddsBoost ? "Boost" : "Penalty"}: ${_magnitude.toStringAsFixed(1)}x odds',
+                'Draft-day impact: ${_type == LedgerEntryType.oddsBoost ? "boosts odds" : "penalizes odds"} by ${_magnitude.toStringAsFixed(1)}x',
                 style: tk.label.copyWith(color: tk.gold),
               ),
               Slider(
@@ -345,7 +392,7 @@ class _LedgerEntrySheetState extends ConsumerState<_LedgerEntrySheet> {
               ),
             ] else if (_type == LedgerEntryType.pickLock) ...[
               Text(
-                'Lock to pick #${_pickIndex + 1}',
+                'Draft-day impact: locks pick #${_pickIndex + 1}',
                 style: tk.label.copyWith(color: tk.gold),
               ),
               Slider(
@@ -384,5 +431,41 @@ class _LedgerEntrySheetState extends ConsumerState<_LedgerEntrySheet> {
     );
     ref.read(draftConfigProvider.notifier).addLedgerEntry(entry);
     Navigator.pop(context);
+  }
+
+  void _applyTemplate({
+    required LedgerEntryType type,
+    required String title,
+    required String notes,
+    double? magnitude,
+  }) {
+    setState(() {
+      _type = type;
+      _title.text = title;
+      _notes.text = notes;
+      if (magnitude != null) _magnitude = magnitude;
+      if (type == LedgerEntryType.pickLock) _pickIndex = 0;
+    });
+  }
+}
+
+class _TemplateChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+
+  const _TemplateChip({required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: tk.gold,
+        side: BorderSide(color: tk.scoreboardLine),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      ),
+      child: Text(label),
+    );
   }
 }
