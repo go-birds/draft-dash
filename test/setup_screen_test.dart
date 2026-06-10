@@ -2,6 +2,7 @@ import 'package:draft_race/domain/draft/draft_config.dart';
 import 'package:draft_race/domain/draft/draft_mode.dart';
 import 'package:draft_race/domain/draft/participant.dart';
 import 'package:draft_race/storage/storage_service.dart';
+import 'package:draft_race/ui/screens/cards_screen.dart';
 import 'package:draft_race/ui/screens/setup_screen.dart';
 import 'package:draft_race/ui/state/providers.dart';
 import 'package:draft_race/ui/theme/app_tokens.dart';
@@ -97,6 +98,77 @@ void main() {
     );
     expect(addButton.onPressed, isNull);
   });
+
+  testWidgets('empty roster shows the empty state until a manager is added', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final storage = await _storageWithManagers(count: 0);
+    await tester.pumpWidget(_setupHarness(storage));
+    await tester.pumpAndSettle();
+
+    const emptyText = 'No managers yet — add your league to get started';
+    await _dragUntilTextVisible(tester, emptyText);
+    expect(find.text(emptyText), findsOneWidget);
+
+    await _dragUntilHitTestable(tester, find.text('ADD FIRST MANAGER'));
+    await tester.tap(find.text('ADD FIRST MANAGER'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(emptyText), findsNothing);
+    expect(find.text('ADD FIRST MANAGER'), findsNothing);
+    await _dragUntilTextVisible(tester, '＋ ADD MANAGER');
+    expect(find.text('＋ ADD MANAGER'), findsOneWidget);
+  });
+
+  testWidgets('start shows a confirmation sheet before navigating', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final storage = await _storageWithManagers(mode: DraftMode.cards);
+    await tester.pumpWidget(_setupHarness(storage));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('FLIP THE CARDS 🎴'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('READY TO DRAFT?'), findsOneWidget);
+    expect(find.text("LET'S GO"), findsOneWidget);
+
+    // BACK closes the sheet and stays on the setup screen.
+    await tester.tap(find.text('BACK'));
+    await tester.pumpAndSettle();
+    expect(find.text('READY TO DRAFT?'), findsNothing);
+    expect(find.byType(SetupScreen), findsOneWidget);
+    expect(find.byType(CardsScreen), findsNothing);
+
+    // LET'S GO proceeds to the reveal screen.
+    await tester.tap(find.text('FLIP THE CARDS 🎴'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("LET'S GO"));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CardsScreen), findsOneWidget);
+  });
+}
+
+Future<void> _dragUntilHitTestable(
+  WidgetTester tester,
+  Finder finder, {
+  int maxDrags = 10,
+}) async {
+  for (
+    var i = 0;
+    i < maxDrags && finder.hitTestable().evaluate().isEmpty;
+    i++
+  ) {
+    await tester.drag(find.byType(ListView).first, const Offset(0, -200));
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> _dragUntilTextVisible(
@@ -110,7 +182,10 @@ Future<void> _dragUntilTextVisible(
   }
 }
 
-Future<StorageService> _storageWithManagers({int count = 3}) async {
+Future<StorageService> _storageWithManagers({
+  int count = 3,
+  DraftMode mode = DraftMode.race,
+}) async {
   SharedPreferences.setMockInitialValues({});
   final storage = await StorageService.open();
   await storage.saveConfig(
@@ -124,7 +199,7 @@ Future<StorageService> _storageWithManagers({int count = 3}) async {
             colorValue: kJerseyPalette[i % kJerseyPalette.length],
           ),
       ],
-      mode: DraftMode.race,
+      mode: mode,
     ),
   );
   return storage;

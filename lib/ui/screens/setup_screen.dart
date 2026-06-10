@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/draft/draft_config.dart';
 import '../../domain/draft/draft_mode.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
@@ -54,6 +55,24 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     }
     ref.read(leagueNameProvider.notifier).set(_league.text.trim());
 
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.tokens.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetCtx) => _StartConfirmSheet(
+        cfg: cfg,
+        onConfirm: () {
+          Navigator.pop(sheetCtx);
+          _launch(cfg);
+        },
+      ),
+    );
+  }
+
+  void _launch(DraftConfig cfg) {
     Widget screen;
     switch (cfg.mode) {
       case DraftMode.race:
@@ -163,47 +182,49 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   _panel(
                     tk,
                     title: 'MANAGERS',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (final p in cfg.participants) ...[
-                          ManagerTile(
-                            key: ValueKey(p.id),
-                            p: p,
-                            mode: cfg.mode,
-                            weightingEnabled: cfg.weightingEnabled,
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GhostButton(
-                                '＋ ADD MANAGER',
-                                height: 46,
-                                onPressed:
-                                    cfg.participants.length >=
-                                        DraftConfigController.maxManagers
-                                    ? null
-                                    : ctrl.addManager,
+                    child: cfg.participants.isEmpty
+                        ? _emptyRoster(tk, ctrl)
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (final p in cfg.participants) ...[
+                                ManagerTile(
+                                  key: ValueKey(p.id),
+                                  p: p,
+                                  mode: cfg.mode,
+                                  weightingEnabled: cfg.weightingEnabled,
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: GhostButton(
+                                      '＋ ADD MANAGER',
+                                      height: 46,
+                                      onPressed:
+                                          cfg.participants.length >=
+                                              DraftConfigController.maxManagers
+                                          ? null
+                                          : ctrl.addManager,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
-                        if (cfg.participants.length >=
-                            DraftConfigController.maxManagers) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'League is full (16 max)',
-                            textAlign: TextAlign.center,
-                            style: tk.body.copyWith(
-                              fontSize: 13,
-                              color: tk.textMuted,
-                            ),
+                              if (cfg.participants.length >=
+                                  DraftConfigController.maxManagers) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'League is full (16 max)',
+                                  textAlign: TextAlign.center,
+                                  style: tk.body.copyWith(
+                                    fontSize: 13,
+                                    color: tk.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
-                      ],
-                    ),
                   ),
                   _panel(
                     tk,
@@ -352,6 +373,37 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
+  /// Empty roster card shown when the league has no managers yet.
+  Widget _emptyRoster(DraftTokens tk, DraftConfigController ctrl) => Container(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+    decoration: BoxDecoration(
+      color: tk.surface,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: tk.scoreboardLine),
+    ),
+    child: Column(
+      children: [
+        const Text('🏈', style: TextStyle(fontSize: 40)),
+        const SizedBox(height: 12),
+        Text(
+          'No managers yet — add your league to get started',
+          textAlign: TextAlign.center,
+          style: tk.body.copyWith(fontSize: 14, color: tk.textMuted),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: PrimaryButton(
+            'ADD FIRST MANAGER',
+            height: 52,
+            fontSize: 18,
+            onPressed: ctrl.addManager,
+          ),
+        ),
+      ],
+    ),
+  );
+
   Widget _panel(
     DraftTokens tk, {
     required String title,
@@ -434,6 +486,68 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       builder: (_) => _ModeDetailSheet(mode: mode),
     );
   }
+}
+
+/// Pre-draft confirmation: summarizes the setup before the reveal starts.
+class _StartConfirmSheet extends StatelessWidget {
+  final DraftConfig cfg;
+  final VoidCallback onConfirm;
+
+  const _StartConfirmSheet({required this.cfg, required this.onConfirm});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: tk.textMuted,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'READY TO DRAFT?',
+              style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold),
+            ),
+            const SizedBox(height: 14),
+            _row(tk, 'FORMAT', cfg.mode.label),
+            _row(tk, 'MANAGERS', '${cfg.participants.length}'),
+            _row(tk, 'HANDICAP ODDS', cfg.weightingEnabled ? 'ON' : 'OFF'),
+            _row(tk, 'COMMISSIONER PINS', '${cfg.pins.length}'),
+            if (cfg.mode == DraftMode.lottery)
+              _row(tk, 'LOTTERY PICKS', '${cfg.effectiveLotteryPickCount}'),
+            const SizedBox(height: 18),
+            PrimaryButton("LET'S GO", onPressed: onConfirm),
+            const SizedBox(height: 10),
+            GhostButton('BACK', onPressed: () => Navigator.pop(context)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(DraftTokens tk, String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(label, style: tk.label.copyWith(color: tk.textMuted)),
+        ),
+        Text(value, style: tk.title.copyWith(fontSize: 15, color: tk.ice)),
+      ],
+    ),
+  );
 }
 
 class _LotteryDepthControl extends StatelessWidget {
