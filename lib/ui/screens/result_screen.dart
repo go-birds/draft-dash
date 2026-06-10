@@ -75,6 +75,14 @@ class ResultScreen extends ConsumerWidget {
       );
     }
 
+    Future<void> copyProofCode() async {
+      await Clipboard.setData(ClipboardData(text: result.proofCode));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Proof code copied')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: tk.background,
       body: Column(
@@ -131,9 +139,37 @@ class ResultScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  result.proofCode,
-                  style: tk.mono.copyWith(fontSize: 11, color: tk.led),
+                Semantics(
+                  button: true,
+                  label: 'Copy proof code ${result.proofCode}',
+                  child: InkWell(
+                    onTap: copyProofCode,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            result.proofCode,
+                            style: tk.mono.copyWith(
+                              fontSize: 11,
+                              color: tk.led,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.copy_rounded,
+                            size: 13,
+                            color: tk.textMuted,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -315,6 +351,15 @@ void _showProofExplainerDialog(
         proofCode: proofCode,
         proofMetadata: proofMetadata,
       );
+
+      Future<void> copyProofCode() async {
+        await Clipboard.setData(ClipboardData(text: proofCode));
+        if (!dialogContext.mounted) return;
+        ScaffoldMessenger.of(dialogContext).showSnackBar(
+          const SnackBar(content: Text('Proof code copied')),
+        );
+      }
+
       return AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -348,10 +393,40 @@ void _showProofExplainerDialog(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final line in lines) ...[
-                  Text(
-                    line,
-                    style: tk.body.copyWith(color: tk.textMuted, fontSize: 14),
-                  ),
+                  if (line == 'Proof code: $proofCode')
+                    Semantics(
+                      button: true,
+                      label: 'Copy proof code $proofCode',
+                      child: InkWell(
+                        onTap: copyProofCode,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                line,
+                                style: tk.body.copyWith(
+                                  color: tk.textMuted,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.copy_rounded,
+                              size: 14,
+                              color: tk.textMuted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Text(
+                      line,
+                      style: tk.body.copyWith(color: tk.textMuted, fontSize: 14),
+                    ),
                   const SizedBox(height: 10),
                 ],
               ],

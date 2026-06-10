@@ -7,6 +7,7 @@ import 'package:draft_race/ui/state/providers.dart';
 import 'package:draft_race/ui/theme/app_tokens.dart';
 import 'package:draft_race/ui/theme/themes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:progenitor_core/progenitor_core.dart';
@@ -110,6 +111,51 @@ void main() {
     expect(find.textContaining('Executed at:'), findsOneWidget);
     expect(find.textContaining('Settings metadata:'), findsOneWidget);
     expect(find.textContaining('League Ledger:'), findsOneWidget);
+  });
+
+  testWidgets('tapping the proof code copies it and shows a snackbar', (
+    tester,
+  ) async {
+    final container = await _container();
+    addTearDown(container.dispose);
+
+    final config = container.read(draftConfigProvider.notifier);
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    config.addManager('Taylor');
+    container.read(draftControllerProvider.notifier).run();
+
+    final clipboardCalls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        clipboardCalls.add(call);
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    await tester.pumpWidget(_resultHarness(container));
+
+    final proofCode = container.read(draftControllerProvider)!.proofCode;
+    await tester.tap(find.text(proofCode));
+    await tester.pump();
+    await tester.pump();
+
+    final setDataCalls = clipboardCalls.where(
+      (call) => call.method == 'Clipboard.setData',
+    );
+    expect(setDataCalls, hasLength(1));
+    expect(
+      (setDataCalls.single.arguments as Map<Object?, Object?>)['text'],
+      proofCode,
+    );
+    expect(find.text('Proof code copied'), findsOneWidget);
   });
 
   testWidgets('result screen opens recap preview before copying', (
