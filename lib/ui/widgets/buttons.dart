@@ -63,12 +63,13 @@ class PrimaryButton extends StatelessWidget {
                   Flexible(
                     child: Text(
                       label,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Anton',
                         fontSize: fontSize,
+                        height: 1.05,
                         letterSpacing: .5,
                         color: const Color(0xFF241500),
                       ),
@@ -130,13 +131,14 @@ class GhostButton extends StatelessWidget {
                 Flexible(
                   child: Text(
                     label,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
+                      height: 1.05,
                       letterSpacing: .8,
                       color: c,
                     ),

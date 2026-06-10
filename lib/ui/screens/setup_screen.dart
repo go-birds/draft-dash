@@ -84,7 +84,6 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final tk = context.tokens;
     final cfg = ref.watch(draftConfigProvider);
     final ctrl = ref.read(draftConfigProvider.notifier);
-    final odds = ref.watch(oddsProvider);
     final pinned = cfg.pins.isNotEmpty;
 
     return Scaffold(
@@ -143,7 +142,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 0.98,
+                      childAspectRatio: 0.88,
                       children: [
                         for (final m in DraftMode.values)
                           ModeCard(
@@ -172,7 +171,6 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                             key: ValueKey(p.id),
                             p: p,
                             mode: cfg.mode,
-                            oddsPct: odds[p.id] ?? 0,
                             weightingEnabled: cfg.weightingEnabled,
                           ),
                           const SizedBox(height: 10),
@@ -213,7 +211,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                             (v) => ctrl.setWeightingEnabled(v),
                           ),
                           if (cfg.weightingEnabled) ...[
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Set each manager’s multiplier independently. Everyone stays at 1.0× unless you edit them; Draft Dash turns those multipliers into fair draw odds right before the reveal.',
+                              style: tk.body.copyWith(
+                                fontSize: 12.5,
+                                color: tk.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
                             _toggle(
                               tk,
                               '🔁 REVERSE (worst picks first)',
@@ -362,7 +368,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final row = Row(
       mainAxisSize: full ? MainAxisSize.max : MainAxisSize.min,
       children: [
-        Text(label, style: tk.body.copyWith(fontSize: 12.5, color: tk.ice)),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: tk.body.copyWith(fontSize: 12.5, color: tk.ice),
+          ),
+        ),
         const SizedBox(width: 6),
         Transform.scale(
           scale: .8,
@@ -450,7 +463,7 @@ class _LotteryDepthControl extends StatelessWidget {
           Text(
             deterministic == 0
                 ? 'Default: draw every pick until one manager remains.'
-                : 'Draw $pickCount picks, then fill $deterministic deterministically.',
+                : 'Draw $pickCount picks, then fill the final $deterministic by the remaining order.',
             style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
           ),
           Slider(
@@ -583,9 +596,13 @@ class _CommissionerSheet extends ConsumerWidget {
                                     size: 34,
                                   ),
                                   const SizedBox(width: 10),
-                                  Text(
-                                    pinned.name,
-                                    style: tk.title.copyWith(fontSize: 16),
+                                  Expanded(
+                                    child: Text(
+                                      pinned.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: tk.title.copyWith(fontSize: 16),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -765,7 +782,7 @@ const _modeInfo = {
   DraftMode.race: _ModeInfo(
     bestFor: 'a loud, fast reveal night',
     summary:
-        'The precomputed order gets turned into a race animation. Every manager is a runner, and the first one across the finish line gets pick #1.',
+        'The locked-in draft order becomes a race animation. Every manager is a runner, and the first one across the finish line gets pick #1.',
     bullets: [
       'Use this when you want the reveal to feel like a finish-line sprint.',
       'The draft order is already set before the animation starts.',
@@ -778,14 +795,14 @@ const _modeInfo = {
         'Card Flip is the cleanest way to show a draft order: one card, one pick, one reveal at a time.',
     bullets: [
       'This mode is ideal when you want the reveal to stay quick and readable.',
-      'The draft result is precomputed, then flipped out card by card.',
-      'Every manager gets revealed in the order already decided by the engine.',
+      'The app locks in the draft order before the first card flips.',
+      'Every manager gets revealed one at a time in the final draft order.',
     ],
   ),
   DraftMode.lottery: _ModeInfo(
     bestFor: 'NBA-style weighted lottery drama',
     summary:
-        'Lottery mode uses the NBA process: 14 balls, 4-ball combinations, and 1,000 assigned combinations after the 11-12-13-14 combination is ignored. Lottery picks are drawn first, then any remaining slots are filled deterministically.',
+        'Lottery mode uses the NBA process: 14 balls, 4-ball combinations, and 1,000 assigned combinations after the 11-12-13-14 combination is ignored. Lottery picks are drawn first, then any remaining slots follow the remaining order.',
     bullets: [
       'Each manager gets a share of the 1,000 combinations based on weight when handicap odds are enabled.',
       'The draw pulls 4 balls at a time from 14 balls, just like the NBA-style process.',

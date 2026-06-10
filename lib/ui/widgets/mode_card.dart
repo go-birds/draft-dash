@@ -32,7 +32,7 @@ class ModeCard extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.fromLTRB(12, 12, 10, 10),
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: selected ? tk.gold.withValues(alpha: .10) : tk.surface,
@@ -75,15 +75,14 @@ class ModeCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 blurb,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
                 style: tk.body.copyWith(
                   fontSize: 10.5,
                   color: tk.textMuted,
-                  height: 1.1,
+                  height: 1.15,
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(
                 'BEST FOR',
                 style: tk.label.copyWith(
@@ -95,12 +94,11 @@ class ModeCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 bestFor,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
                 style: tk.body.copyWith(
                   fontSize: 11,
                   color: tk.ice,
-                  height: 1.05,
+                  height: 1.15,
                 ),
               ),
             ],

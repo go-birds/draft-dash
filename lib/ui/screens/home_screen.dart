@@ -123,8 +123,8 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'NEW DRAFT clears the field with `prepareNewDraft()`. '
-                        'EDIT SAVED LEAGUE returns to the roster, mode, odds, and ledger you already saved.',
+                        'NEW DRAFT starts fresh from this league and clears temporary draft-day tweaks. '
+                        'EDIT SAVED LEAGUE lets you adjust the roster, mode, odds, and ledger you already saved.',
                         style: tk.body.copyWith(
                           color: tk.textMuted,
                           fontSize: 12,

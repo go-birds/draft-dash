@@ -7,19 +7,18 @@ import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import 'jersey_chip.dart';
 
-/// A roster row: jersey + name, plus odds slider (auto modes) or a ColemanBucks
-/// field (bidding mode). Edits flow straight to [draftConfigProvider].
+/// A roster row: jersey + name, plus an independent odds multiplier (auto
+/// modes) or a ColemanBucks field (bidding mode). Edits flow straight to
+/// [draftConfigProvider].
 class ManagerTile extends ConsumerWidget {
   final Participant p;
   final DraftMode mode;
-  final double oddsPct; // 0..1 chance at pick #1
   final bool weightingEnabled;
 
   const ManagerTile({
     super.key,
     required this.p,
     required this.mode,
-    required this.oddsPct,
     required this.weightingEnabled,
   });
 
@@ -83,14 +82,14 @@ class ManagerTile extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    '${(oddsPct * 100).round()}%',
+                    '${p.weight.toStringAsFixed(1)}×',
                     style: tk.displayLarge.copyWith(
                       fontSize: 20,
                       color: _oddsColor(tk),
                     ),
                   ),
                   Text(
-                    'pick 1',
+                    'mult.',
                     style: tk.body.copyWith(fontSize: 10, color: tk.textMuted),
                   ),
                 ],
@@ -158,7 +157,7 @@ class ManagerTile extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 6),
           child: Text(
-            'odds ${p.weight.toStringAsFixed(1)}× · $label',
+            'multiplier ${p.weight.toStringAsFixed(1)}× · $label',
             style: tk.body.copyWith(fontSize: 11.5, color: _oddsColor(tk)),
           ),
         ),

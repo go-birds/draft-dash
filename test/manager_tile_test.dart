@@ -13,6 +13,41 @@ import 'package:progenitor_core/progenitor_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('handicap setup shows independent multipliers, not percentages', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.open();
+    await storage.saveConfig(
+      const DraftConfig(
+        participants: [
+          Participant(
+            id: 'p1',
+            name: 'Nick',
+            number: '07',
+            colorValue: 0xFF3A86FF,
+            weight: 1,
+          ),
+          Participant(
+            id: 'p2',
+            name: 'Jordan',
+            number: '23',
+            colorValue: 0xFFE63946,
+            weight: 3,
+          ),
+        ],
+        weightingEnabled: true,
+      ),
+    );
+
+    await tester.pumpWidget(_managerTileHarness(storage));
+
+    expect(find.text('1.0×'), findsOneWidget);
+    expect(find.text('3.0×'), findsOneWidget);
+    expect(find.text('pick 1'), findsNothing);
+    expect(find.textContaining('%'), findsNothing);
+  });
+
   testWidgets('manager removal can be undone', (tester) async {
     await tester.binding.setSurfaceSize(const Size(900, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -68,14 +103,12 @@ Widget _managerTileHarness(StorageService storage) => ProviderScope(
         body: Consumer(
           builder: (context, ref, _) {
             final cfg = ref.watch(draftConfigProvider);
-            final odds = ref.watch(oddsProvider);
             return ListView(
               children: [
                 for (final p in cfg.participants)
                   ManagerTile(
                     p: p,
                     mode: DraftMode.race,
-                    oddsPct: odds[p.id] ?? 0,
                     weightingEnabled: true,
                   ),
               ],

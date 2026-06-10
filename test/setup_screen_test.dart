@@ -26,15 +26,13 @@ void main() {
     expect(find.text('FORMAT'), findsOneWidget);
     expect(find.text('MANAGERS'), findsOneWidget);
 
-    await tester.drag(find.byType(ListView).first, const Offset(0, -700));
-    await tester.pumpAndSettle();
-
     for (final label in const [
       'ODDS',
       'LOTTERY OPTIONS',
       'COMMISSIONER',
       'LEAGUE LEDGER',
     ]) {
+      await _dragUntilTextVisible(tester, label);
       expect(find.text(label), findsOneWidget);
     }
   });
@@ -73,6 +71,13 @@ void main() {
       await tester.pumpAndSettle();
     }
   });
+}
+
+Future<void> _dragUntilTextVisible(WidgetTester tester, String label) async {
+  for (var i = 0; i < 8 && find.text(label).evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(ListView).first, const Offset(0, -260));
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<StorageService> _storageWithManagers() async {

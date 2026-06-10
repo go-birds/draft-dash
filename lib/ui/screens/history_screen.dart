@@ -478,7 +478,7 @@ Future<void> _showRecapPreviewSheet(
                   ],
                 ),
                 Text(
-                  'Preview the text before copying. Short recap is built for sharing, while the full proof recap includes proof metadata for auditability.',
+                  'Preview the text before copying. Short recap is built for sharing, while the full proof recap includes the details needed to verify the result.',
                   style: tk.body.copyWith(color: tk.textMuted, fontSize: 13),
                 ),
                 const SizedBox(height: 16),

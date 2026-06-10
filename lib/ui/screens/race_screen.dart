@@ -27,6 +27,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
   final Map<String, double> _finish =
       {}; // id -> fraction of race when it finishes
   late final int _n;
+  late final String? _winnerId;
 
   int _countdown = 3; // 3,2,1,0(GO)
   bool _racing = false;
@@ -48,6 +49,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     _n = _lineup.length;
 
     final order = result?.order ?? [for (final p in _lineup) p.id];
+    _winnerId = order.isEmpty ? null : order.first;
     final rand = Random(result?.seed ?? 1);
     double prev = 0;
     for (var r = 0; r < order.length; r++) {
@@ -64,7 +66,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     _race =
         AnimationController(
           vsync: this,
-          duration: Duration(milliseconds: 5200 + _n * 200),
+          duration: Duration(milliseconds: 6400 + _n * 240),
         )..addStatusListener((s) {
           if (s == AnimationStatus.completed) _onFinish();
         });
@@ -151,11 +153,18 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
                     color: Color(_lineup[i].colorValue),
                     number: _lineup[i].number,
                     progress: prog[_lineup[i].id]!,
-                    stride: _racing ? t * 42 + i * .8 : 0,
+                    stride: _racing ? t * 34 + i * .8 : 0,
                     leader: _racing && prog[_lineup[i].id]! == leaderProgress,
+                    winner: _finished && _lineup[i].id == _winnerId,
                   ),
               ];
 
+              final winner = _winnerId == null
+                  ? null
+                  : _lineup.firstWhere(
+                      (p) => p.id == _winnerId,
+                      orElse: () => _lineup.first,
+                    );
               final leader = _lineup.firstWhere(
                 (p) => prog[p.id] == leaderProgress,
                 orElse: () => _lineup.first,
@@ -195,7 +204,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
                   ),
                   if (_countdown > -1 && !_racing)
                     _Countdown(value: _countdown, introProgress: introT),
-                  if (_finished) _FinishFlash(winner: liveOrder.first),
+                  if (_finished)
+                    _FinishFlash(winner: winner ?? liveOrder.first),
                 ],
               );
             },
@@ -431,9 +441,15 @@ class _FinishFlash extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Text(
-                winner.name.toUpperCase(),
-                style: tk.displayLarge.copyWith(fontSize: 44),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Text(
+                  winner.name.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: tk.displayLarge.copyWith(fontSize: 44, height: .95),
+                ),
               ),
             ),
             const SizedBox(height: 8),

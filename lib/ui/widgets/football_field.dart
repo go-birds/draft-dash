@@ -9,9 +9,10 @@ import '../theme/color_utils.dart';
 class RaceRunner {
   final Color color;
   final String number;
-  final double progress; // 0..1 toward the goal line
+  final double progress; // 0..1 from goal line to far end zone
   final double stride; // running-leg phase
   final bool leader;
+  final bool winner;
 
   const RaceRunner({
     required this.color,
@@ -19,6 +20,7 @@ class RaceRunner {
     required this.progress,
     required this.stride,
     required this.leader,
+    this.winner = false,
   });
 }
 
@@ -45,7 +47,8 @@ class FieldRacePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
     const visibleYards = 40.0;
-    final cameraStart = (leaderProgress * 100 - 20).clamp(0.0, 60.0);
+    const finishYard = 105.0;
+    final cameraStart = (leaderProgress * finishYard - 20).clamp(-10.0, 70.0);
     double xForYard(double yard) => ((yard - cameraStart) / visibleYards) * w;
     final intro = Curves.easeOutCubic.transform(introProgress.clamp(0.0, 1.0));
     final finishPulse = finished
@@ -116,7 +119,7 @@ class FieldRacePainter extends CustomPainter {
     for (var i = 0; i < n; i++) {
       final r = runners[i];
       final cx = racing
-          ? xForYard(100 * r.progress.clamp(0.0, 1.0))
+          ? xForYard(finishYard * r.progress.clamp(0.0, 1.0))
           : xForYard(
               (-12 + (i * 0.9)) +
                   ((4.0 - i * 0.12) - (-12 + (i * 0.9))) * intro,
@@ -366,6 +369,38 @@ class FieldRacePainter extends CustomPainter {
         ..color = const Color(0xFFE2E7EE)
         ..style = PaintingStyle.stroke
         ..strokeWidth = s * 0.02,
+    );
+
+    if (r.winner) {
+      _drawFirstPickBadge(c, center.translate(s * 0.08, -s * 0.62), s);
+    }
+  }
+
+  void _drawFirstPickBadge(Canvas c, Offset center, double s) {
+    final badge = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: center, width: s * 1.04, height: s * 0.34),
+      Radius.circular(s * 0.17),
+    );
+    c.drawRRect(
+      badge.shift(Offset(0, s * 0.04)),
+      Paint()..color = Colors.black.withValues(alpha: .35),
+    );
+    c.drawRRect(badge, Paint()..color = tk.gold);
+    c.drawRRect(
+      badge,
+      Paint()
+        ..color = Colors.white.withValues(alpha: .45)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+    _text(
+      c,
+      '1ST PICK',
+      center,
+      s * 0.18,
+      const Color(0xFF241500),
+      bold: true,
+      spacing: 1.1,
     );
   }
 
