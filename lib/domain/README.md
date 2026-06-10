@@ -34,15 +34,16 @@ draft/
 - `DraftResult.proofCode` is based on the draft mode, seed, and ordered manager
   IDs. It intentionally ignores display names and roster snapshots.
 - `DraftResult.proofMetadata` captures the execution timestamp, seed, and full
-  draft settings snapshot used to run the draft.
+  draft settings snapshot used to run the draft. User-facing copy calls these
+  "verification details" so the app does not expose implementation jargon.
 - League Ledger entries are applied before draft generation. Odds entries adjust
   manager weights, pick-lock entries merge into commissioner pins, and all
   entries are retained in proof metadata for draft-day auditability.
 - Lottery mode uses `NbaLottery`: 14 balls, 4-number combinations, 1,000
   assigned combinations, and a redraw for the ignored 11-12-13-14 combination.
   By default, lottery picks are drawn until only one manager remains. A lower
-  `lotteryPickCount` can be configured to fill more of the board
-  deterministically after the lottery portion.
+  `lotteryPickCount` can be configured to fill more of the board by remaining
+  lottery order after the lottery portion.
 - `DraftResult.rosterSnapshot` captures manager details at result time so saved
   boards remain readable after setup changes.
 - `DraftEngine.generate` sanitizes commissioner pins before ordering, because

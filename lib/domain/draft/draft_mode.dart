@@ -1,12 +1,14 @@
-/// The reveal formats. Three are "auto-reveal" (race/cards/lottery) — they
-/// dramatize a precomputed [DraftResult]. [bidding] is live & interactive.
+/// The reveal formats. Three are "auto-reveal" (race/cards/lottery): the
+/// result is generated first, then the UI dramatizes it. [bidding] is live and
+/// interactive.
 enum DraftMode {
   race,
   cards,
   lottery,
   bidding;
 
-  /// Whether this mode dramatizes a precomputed order (vs. live bidding).
+  /// Whether this mode reveals a generated order rather than collecting live
+  /// bids.
   bool get isAutoReveal => this != DraftMode.bidding;
 
   String get code => name;

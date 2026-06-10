@@ -93,7 +93,7 @@ class DraftRecap {
 
     if (proofMetadata == null) {
       lines.add(
-        'No proof metadata was saved with this board, so only the proof code is available.',
+        'No verification details were saved with this board, so only the proof code is available.',
       );
       return lines;
     }

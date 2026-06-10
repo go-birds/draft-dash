@@ -254,6 +254,8 @@ class DraftConfigController extends Notifier<DraftConfig> {
 
   void clearLeague() => _set(const DraftConfig(participants: []));
 
+  /// Starts a clean draft from the saved league roster while preserving ledger
+  /// entries that should still apply on draft day.
   void prepareNewDraft() => _set(
     state.copyWith(
       participants: [for (final p in _ps) p.copyWith(weight: 1.0)],
