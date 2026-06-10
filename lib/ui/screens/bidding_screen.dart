@@ -233,84 +233,94 @@ class _BidSheetState extends State<_BidSheet> {
   Widget build(BuildContext context) {
     final tk = context.tokens;
     final max = widget.budget;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 22,
-        right: 22,
-        top: 18,
-        bottom: 18 + MediaQuery.of(context).viewInsets.bottom,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 5,
-            decoration: BoxDecoration(
-              color: tk.textMuted,
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-          const SizedBox(height: 16),
-          JerseyChip(
-            color: Color(widget.p.colorValue),
-            number: widget.p.number,
-            size: 56,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.p.name.toUpperCase(),
-            style: tk.displayLarge.copyWith(fontSize: 24),
-          ),
-          Text(
-            'keep it secret · budget $max CB',
-            style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            '$_bid',
-            style: tk.displayLarge.copyWith(fontSize: 64, color: tk.gold),
-          ),
-          Text('ColemanBucks', style: tk.label.copyWith(color: tk.textMuted)),
-          const SizedBox(height: 8),
-          Row(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 22,
+          right: 22,
+          top: 18,
+          bottom: 18 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _step(tk, '-10', () => _set(_bid - 10)),
-              const SizedBox(width: 8),
-              _step(tk, '-1', () => _set(_bid - 1)),
-              Expanded(
-                child: Slider(
-                  value: _bid.toDouble().clamp(0, max.toDouble()),
-                  max: max.toDouble().clamp(1, double.infinity),
-                  activeColor: tk.gold,
-                  onChanged: (v) => setState(() => _bid = v.round()),
+              Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: tk.textMuted,
+                  borderRadius: BorderRadius.circular(3),
                 ),
               ),
-              _step(tk, '+1', () => _set(_bid + 1)),
-              const SizedBox(width: 8),
-              _step(tk, '+10', () => _set(_bid + 10)),
+              const SizedBox(height: 16),
+              JerseyChip(
+                color: Color(widget.p.colorValue),
+                number: widget.p.number,
+                size: 56,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.p.name.toUpperCase(),
+                style: tk.displayLarge.copyWith(fontSize: 24),
+              ),
+              Text(
+                'keep it secret · budget $max CB',
+                style: tk.body.copyWith(fontSize: 12, color: tk.textMuted),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                '$_bid',
+                style: tk.displayLarge.copyWith(fontSize: 64, color: tk.gold),
+              ),
+              Text(
+                'ColemanBucks',
+                style: tk.label.copyWith(color: tk.textMuted),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _step(tk, '-10', () => _set(_bid - 10)),
+                  const SizedBox(width: 8),
+                  _step(tk, '-1', () => _set(_bid - 1)),
+                  Expanded(
+                    child: Slider(
+                      value: _bid.toDouble().clamp(0, max.toDouble()),
+                      max: max.toDouble().clamp(1, double.infinity),
+                      activeColor: tk.gold,
+                      onChanged: (v) => setState(() => _bid = v.round()),
+                    ),
+                  ),
+                  _step(tk, '+1', () => _set(_bid + 1)),
+                  const SizedBox(width: 8),
+                  _step(tk, '+10', () => _set(_bid + 10)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: GhostButton(
+                      'PASS (0)',
+                      onPressed: () => Navigator.pop(context, 0),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PrimaryButton(
+                      'LOCK IN BID 🔒',
+                      onPressed: () => Navigator.pop(context, _bid),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              SizedBox(
-                width: 120,
-                child: GhostButton(
-                  'PASS (0)',
-                  onPressed: () => Navigator.pop(context, 0),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: PrimaryButton(
-                  'LOCK IN BID 🔒',
-                  onPressed: () => Navigator.pop(context, _bid),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

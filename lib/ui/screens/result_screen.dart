@@ -78,9 +78,9 @@ class ResultScreen extends ConsumerWidget {
     Future<void> copyProofCode() async {
       await Clipboard.setData(ClipboardData(text: result.proofCode));
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Proof code copied')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Proof code copied')));
     }
 
     return Scaffold(
@@ -275,61 +275,66 @@ Future<void> _showRecapPreviewSheet(
         ).showSnackBar(SnackBar(content: Text(message)));
       }
 
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Share recap',
-                        style: tk.displayLarge.copyWith(fontSize: 22),
+      return ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.85,
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Share recap',
+                          style: tk.displayLarge.copyWith(fontSize: 22),
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Close',
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                      icon: Icon(Icons.close_rounded, color: tk.textMuted),
-                    ),
-                  ],
-                ),
-                Text(
-                  'Preview the text before copying. Short recap is built for sharing, while the full proof recap includes the details needed to verify the result.',
-                  style: tk.body.copyWith(color: tk.textMuted, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                _RecapPreviewBlock(
-                  label: 'SHORT RECAP',
-                  preview: shortRecap,
-                  buttonLabel: 'COPY SHORT RECAP',
-                  button: GhostButton(
-                    'COPY SHORT RECAP',
-                    icon: Icons.copy_rounded,
-                    height: 48,
-                    onPressed: () =>
-                        copyAndDismiss(shortRecap, 'Short recap copied'),
+                      IconButton(
+                        tooltip: 'Close',
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        icon: Icon(Icons.close_rounded, color: tk.textMuted),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 14),
-                _RecapPreviewBlock(
-                  label: 'FULL PROOF RECAP',
-                  preview: fullRecap,
-                  buttonLabel: 'COPY FULL PROOF RECAP',
-                  button: PrimaryButton(
-                    'COPY FULL PROOF RECAP',
-                    icon: Icons.copy_rounded,
-                    height: 54,
-                    fontSize: 17,
-                    onPressed: () =>
-                        copyAndDismiss(fullRecap, 'Full proof recap copied'),
+                  Text(
+                    'Preview the text before copying. Short recap is built for sharing, while the full proof recap includes the details needed to verify the result.',
+                    style: tk.body.copyWith(color: tk.textMuted, fontSize: 13),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  _RecapPreviewBlock(
+                    label: 'SHORT RECAP',
+                    preview: shortRecap,
+                    buttonLabel: 'COPY SHORT RECAP',
+                    button: GhostButton(
+                      'COPY SHORT RECAP',
+                      icon: Icons.copy_rounded,
+                      height: 48,
+                      onPressed: () =>
+                          copyAndDismiss(shortRecap, 'Short recap copied'),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _RecapPreviewBlock(
+                    label: 'FULL PROOF RECAP',
+                    preview: fullRecap,
+                    buttonLabel: 'COPY FULL PROOF RECAP',
+                    button: PrimaryButton(
+                      'COPY FULL PROOF RECAP',
+                      icon: Icons.copy_rounded,
+                      height: 54,
+                      fontSize: 17,
+                      onPressed: () =>
+                          copyAndDismiss(fullRecap, 'Full proof recap copied'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -355,9 +360,9 @@ void _showProofExplainerDialog(
       Future<void> copyProofCode() async {
         await Clipboard.setData(ClipboardData(text: proofCode));
         if (!dialogContext.mounted) return;
-        ScaffoldMessenger.of(dialogContext).showSnackBar(
-          const SnackBar(content: Text('Proof code copied')),
-        );
+        ScaffoldMessenger.of(
+          dialogContext,
+        ).showSnackBar(const SnackBar(content: Text('Proof code copied')));
       }
 
       return AlertDialog(
@@ -425,7 +430,10 @@ void _showProofExplainerDialog(
                   else
                     Text(
                       line,
-                      style: tk.body.copyWith(color: tk.textMuted, fontSize: 14),
+                      style: tk.body.copyWith(
+                        color: tk.textMuted,
+                        fontSize: 14,
+                      ),
                     ),
                   const SizedBox(height: 10),
                 ],

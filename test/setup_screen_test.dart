@@ -154,6 +154,55 @@ void main() {
 
     expect(find.byType(CardsScreen), findsOneWidget);
   });
+
+  testWidgets('setup sheets do not overflow on a 320x568 screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final storage = await _storageWithManagers(mode: DraftMode.lottery);
+    await tester.pumpWidget(_setupHarness(storage));
+    await tester.pumpAndSettle();
+    // The base setup screen has known 320px-wide layout overflows that are
+    // tracked separately; drain them so the assertions below only cover the
+    // bottom sheets.
+    tester.takeException();
+
+    // Pre-draft confirmation sheet.
+    await tester.tap(find.text('START THE DRAW 🎱'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('READY TO DRAFT?'), findsOneWidget);
+    await tester.tap(find.text('BACK'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // Mode detail sheet.
+    await tester.tap(find.byIcon(Icons.info_outline_rounded).first);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(ValueKey('mode-detail-${DraftMode.values.first.name}')),
+      findsOneWidget,
+    );
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // Commissioner sheet. Scrolling lays out more of the base screen, so
+    // drain any base-screen overflows again before asserting on the sheet.
+    await _dragUntilHitTestable(tester, find.text('🔒 COMMISH'), maxDrags: 30);
+    tester.takeException();
+    await tester.tap(find.text('🔒 COMMISH'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('🔒 COMMISSIONER'), findsOneWidget);
+  });
 }
 
 Future<void> _dragUntilHitTestable(

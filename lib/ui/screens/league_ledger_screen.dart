@@ -258,156 +258,161 @@ class _LedgerEntrySheetState extends ConsumerState<_LedgerEntrySheet> {
     final managers = cfg.participants;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: tk.textMuted,
-                  borderRadius: BorderRadius.circular(3),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: tk.textMuted,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'ADD TO LEAGUE LEDGER',
-              style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Quick templates',
-              style: tk.label.copyWith(color: tk.textMuted),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _TemplateChip(
-                  label: 'Last-place penalty',
-                  onPressed: () => _applyTemplate(
-                    type: LedgerEntryType.oddsPenalty,
-                    title: 'Last-place penalty',
-                    notes: 'Penalize the manager who finishes last.',
-                    magnitude: .5,
-                  ),
-                ),
-                _TemplateChip(
-                  label: 'Consolation boost',
-                  onPressed: () => _applyTemplate(
-                    type: LedgerEntryType.oddsBoost,
-                    title: 'Consolation boost',
-                    notes: 'Reward the consolation bracket winner.',
-                    magnitude: .5,
-                  ),
-                ),
-                _TemplateChip(
-                  label: 'Traded / locked pick',
-                  onPressed: () => _applyTemplate(
-                    type: LedgerEntryType.pickLock,
-                    title: 'Traded / locked pick',
-                    notes: 'Keep this pick locked to the agreed manager.',
-                  ),
-                ),
-                _TemplateChip(
-                  label: 'Commissioner note',
-                  onPressed: () => _applyTemplate(
-                    type: LedgerEntryType.note,
-                    title: 'Commissioner note',
-                    notes: 'League note for draft-day context.',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _managerId,
-              dropdownColor: tk.surface,
-              decoration: const InputDecoration(labelText: 'Manager'),
-              items: [
-                for (final p in managers)
-                  DropdownMenuItem(
-                    value: p.id,
-                    child: Row(
-                      children: [
-                        JerseyChip(
-                          color: Color(p.colorValue),
-                          number: p.number,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(p.name),
-                      ],
+              const SizedBox(height: 16),
+              Text(
+                'ADD TO LEAGUE LEDGER',
+                style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Quick templates',
+                style: tk.label.copyWith(color: tk.textMuted),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _TemplateChip(
+                    label: 'Last-place penalty',
+                    onPressed: () => _applyTemplate(
+                      type: LedgerEntryType.oddsPenalty,
+                      title: 'Last-place penalty',
+                      notes: 'Penalize the manager who finishes last.',
+                      magnitude: .5,
                     ),
                   ),
+                  _TemplateChip(
+                    label: 'Consolation boost',
+                    onPressed: () => _applyTemplate(
+                      type: LedgerEntryType.oddsBoost,
+                      title: 'Consolation boost',
+                      notes: 'Reward the consolation bracket winner.',
+                      magnitude: .5,
+                    ),
+                  ),
+                  _TemplateChip(
+                    label: 'Traded / locked pick',
+                    onPressed: () => _applyTemplate(
+                      type: LedgerEntryType.pickLock,
+                      title: 'Traded / locked pick',
+                      notes: 'Keep this pick locked to the agreed manager.',
+                    ),
+                  ),
+                  _TemplateChip(
+                    label: 'Commissioner note',
+                    onPressed: () => _applyTemplate(
+                      type: LedgerEntryType.note,
+                      title: 'Commissioner note',
+                      notes: 'League note for draft-day context.',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: _managerId,
+                dropdownColor: tk.surface,
+                decoration: const InputDecoration(labelText: 'Manager'),
+                items: [
+                  for (final p in managers)
+                    DropdownMenuItem(
+                      value: p.id,
+                      child: Row(
+                        children: [
+                          JerseyChip(
+                            color: Color(p.colorValue),
+                            number: p.number,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(p.name),
+                        ],
+                      ),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _managerId = v ?? _managerId),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<LedgerEntryType>(
+                initialValue: _type,
+                dropdownColor: tk.surface,
+                decoration: const InputDecoration(labelText: 'Entry type'),
+                items: [
+                  for (final type in LedgerEntryType.values)
+                    DropdownMenuItem(value: type, child: Text(type.label)),
+                ],
+                onChanged: (v) => setState(() => _type = v ?? _type),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _title,
+                style: tk.body,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _notes,
+                style: tk.body,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Notes'),
+              ),
+              const SizedBox(height: 12),
+              if (_type == LedgerEntryType.oddsBoost ||
+                  _type == LedgerEntryType.oddsPenalty) ...[
+                Text(
+                  'Draft-day impact: ${_type == LedgerEntryType.oddsBoost ? "boosts odds" : "penalizes odds"} by ${_magnitude.toStringAsFixed(1)}x',
+                  style: tk.label.copyWith(color: tk.gold),
+                ),
+                Slider(
+                  value: _magnitude,
+                  min: .1,
+                  max: 3,
+                  divisions: 29,
+                  activeColor: tk.gold,
+                  inactiveColor: tk.scoreboardLine,
+                  onChanged: (v) => setState(() => _magnitude = v),
+                ),
+              ] else if (_type == LedgerEntryType.pickLock) ...[
+                Text(
+                  'Draft-day impact: locks pick #${_pickIndex + 1}',
+                  style: tk.label.copyWith(color: tk.gold),
+                ),
+                Slider(
+                  value: _pickIndex.toDouble(),
+                  min: 0,
+                  max: (managers.length - 1).toDouble(),
+                  divisions: managers.length > 1 ? managers.length - 1 : null,
+                  activeColor: tk.gold,
+                  inactiveColor: tk.scoreboardLine,
+                  onChanged: (v) => setState(() => _pickIndex = v.round()),
+                ),
               ],
-              onChanged: (v) => setState(() => _managerId = v ?? _managerId),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<LedgerEntryType>(
-              initialValue: _type,
-              dropdownColor: tk.surface,
-              decoration: const InputDecoration(labelText: 'Entry type'),
-              items: [
-                for (final type in LedgerEntryType.values)
-                  DropdownMenuItem(value: type, child: Text(type.label)),
-              ],
-              onChanged: (v) => setState(() => _type = v ?? _type),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _title,
-              style: tk.body,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _notes,
-              style: tk.body,
-              maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Notes'),
-            ),
-            const SizedBox(height: 12),
-            if (_type == LedgerEntryType.oddsBoost ||
-                _type == LedgerEntryType.oddsPenalty) ...[
-              Text(
-                'Draft-day impact: ${_type == LedgerEntryType.oddsBoost ? "boosts odds" : "penalizes odds"} by ${_magnitude.toStringAsFixed(1)}x',
-                style: tk.label.copyWith(color: tk.gold),
-              ),
-              Slider(
-                value: _magnitude,
-                min: .1,
-                max: 3,
-                divisions: 29,
-                activeColor: tk.gold,
-                inactiveColor: tk.scoreboardLine,
-                onChanged: (v) => setState(() => _magnitude = v),
-              ),
-            ] else if (_type == LedgerEntryType.pickLock) ...[
-              Text(
-                'Draft-day impact: locks pick #${_pickIndex + 1}',
-                style: tk.label.copyWith(color: tk.gold),
-              ),
-              Slider(
-                value: _pickIndex.toDouble(),
-                min: 0,
-                max: (managers.length - 1).toDouble(),
-                divisions: managers.length > 1 ? managers.length - 1 : null,
-                activeColor: tk.gold,
-                inactiveColor: tk.scoreboardLine,
-                onChanged: (v) => setState(() => _pickIndex = v.round()),
-              ),
+              const SizedBox(height: 14),
+              PrimaryButton('SAVE ENTRY', onPressed: _save),
             ],
-            const SizedBox(height: 14),
-            PrimaryButton('SAVE ENTRY', onPressed: _save),
-          ],
+          ),
         ),
       ),
     );

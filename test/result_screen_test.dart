@@ -179,6 +179,39 @@ void main() {
     expect(find.text('COPY SHORT RECAP'), findsOneWidget);
     expect(find.text('COPY FULL PROOF RECAP'), findsOneWidget);
   });
+
+  testWidgets('recap preview sheet does not overflow on a 320x568 screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final container = await _container();
+    addTearDown(container.dispose);
+
+    final config = container.read(draftConfigProvider.notifier);
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    config.addManager('Taylor');
+    container.read(draftControllerProvider.notifier).run();
+
+    await tester.pumpWidget(_resultHarness(container));
+    await tester.pumpAndSettle();
+    // The base result screen has known 320px-wide layout overflows that are
+    // tracked separately; drain them so the assertions below only cover the
+    // recap preview sheet.
+    tester.takeException();
+
+    await tester.tap(find.text('COPY RECAP'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Share recap'), findsOneWidget);
+  });
 }
 
 Future<ProviderContainer> _container() async {

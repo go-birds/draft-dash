@@ -68,6 +68,33 @@ void main() {
     expect(entry.notes, contains('Keep this pick locked'));
     expect(entry.pickIndex, 0);
   });
+
+  testWidgets('ledger entry sheet does not overflow on a 320x568 screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final storage = await _storageWithManagers();
+    await tester.pumpWidget(_ledgerHarness(storage));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('ADD LEDGER ENTRY'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('ADD TO LEAGUE LEDGER'), findsOneWidget);
+
+    // The sheet stays scrollable, so the save button can be reached.
+    await tester.ensureVisible(find.text('SAVE ENTRY'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<StorageService> _storageWithManagers() async {

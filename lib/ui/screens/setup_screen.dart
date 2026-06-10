@@ -498,40 +498,47 @@ class _StartConfirmSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tk = context.tokens;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: tk.textMuted,
-                  borderRadius: BorderRadius.circular(3),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: tk.textMuted,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  'READY TO DRAFT?',
+                  style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold),
+                ),
+                const SizedBox(height: 14),
+                _row(tk, 'FORMAT', cfg.mode.label),
+                _row(tk, 'MANAGERS', '${cfg.participants.length}'),
+                _row(tk, 'HANDICAP ODDS', cfg.weightingEnabled ? 'ON' : 'OFF'),
+                _row(tk, 'COMMISSIONER PINS', '${cfg.pins.length}'),
+                if (cfg.mode == DraftMode.lottery)
+                  _row(tk, 'LOTTERY PICKS', '${cfg.effectiveLotteryPickCount}'),
+                const SizedBox(height: 18),
+                PrimaryButton("LET'S GO", onPressed: onConfirm),
+                const SizedBox(height: 10),
+                GhostButton('BACK', onPressed: () => Navigator.pop(context)),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'READY TO DRAFT?',
-              style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold),
-            ),
-            const SizedBox(height: 14),
-            _row(tk, 'FORMAT', cfg.mode.label),
-            _row(tk, 'MANAGERS', '${cfg.participants.length}'),
-            _row(tk, 'HANDICAP ODDS', cfg.weightingEnabled ? 'ON' : 'OFF'),
-            _row(tk, 'COMMISSIONER PINS', '${cfg.pins.length}'),
-            if (cfg.mode == DraftMode.lottery)
-              _row(tk, 'LOTTERY PICKS', '${cfg.effectiveLotteryPickCount}'),
-            const SizedBox(height: 18),
-            PrimaryButton("LET'S GO", onPressed: onConfirm),
-            const SizedBox(height: 10),
-            GhostButton('BACK', onPressed: () => Navigator.pop(context)),
-          ],
+          ),
         ),
       ),
     );
@@ -641,11 +648,19 @@ class _CommissionerSheet extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
             child: Row(
               children: [
-                Text(
-                  '🔒 COMMISSIONER',
-                  style: tk.displayLarge.copyWith(fontSize: 24, color: tk.gold),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '🔒 COMMISSIONER',
+                      style: tk.displayLarge.copyWith(
+                        fontSize: 24,
+                        color: tk.gold,
+                      ),
+                    ),
+                  ),
                 ),
-                const Spacer(),
                 if (cfg.pins.isNotEmpty)
                   TextButton(
                     onPressed: () async {
