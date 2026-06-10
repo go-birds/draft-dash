@@ -120,6 +120,8 @@ final leagueNameProvider = NotifierProvider<LeagueNameController, String>(
 
 // ─── draft config (the league roster + setup) ────────────────────────────────
 class DraftConfigController extends Notifier<DraftConfig> {
+  static const maxManagers = 16;
+
   @override
   DraftConfig build() {
     final saved = ref.read(storageProvider).loadConfig();
@@ -140,6 +142,7 @@ class DraftConfigController extends Notifier<DraftConfig> {
   List<Participant> get _ps => state.participants;
 
   void addManager([String name = '']) {
+    if (_ps.length >= maxManagers) return;
     final idx = _ps.length;
     final p = Participant(
       id: _newId(),
@@ -185,13 +188,14 @@ class DraftConfigController extends Notifier<DraftConfig> {
   void setWeight(String id, double w) {
     final p = _tryById(id);
     if (p == null) return;
-    updateManager(p.copyWith(weight: w));
+    // Weights must stay > 0: the engine samples with pow(u, 1/w).
+    updateManager(p.copyWith(weight: w.clamp(0.1, 10.0)));
   }
 
   void setBudget(String id, int b) {
     final p = _tryById(id);
     if (p == null) return;
-    updateManager(p.copyWith(budget: b));
+    updateManager(p.copyWith(budget: b.clamp(0, 100000)));
   }
 
   void reorder(int oldIndex, int newIndex) {

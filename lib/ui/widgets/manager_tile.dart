@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/draft/draft_mode.dart';
@@ -48,7 +49,7 @@ class ManagerTile extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
-                  onTap: () => _editName(context, ctrl),
+                  onTap: () => _editName(context, ref, ctrl),
                   child: Row(
                     children: [
                       Flexible(
@@ -198,42 +199,108 @@ class ManagerTile extends ConsumerWidget {
     );
   }
 
-  void _editName(BuildContext context, DraftConfigController ctrl) {
-    final controller = TextEditingController(text: p.name);
+  void _editName(
+    BuildContext context,
+    WidgetRef ref,
+    DraftConfigController ctrl,
+  ) {
+    final nameController = TextEditingController(text: p.name);
+    final numberController = TextEditingController(text: p.number);
+    String? nameError;
     showDialog<void>(
       context: context,
       builder: (ctx) {
         final tk = ctx.tokens;
-        return AlertDialog(
-          backgroundColor: tk.surface,
-          title: Text('Manager name', style: tk.title),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            style: tk.body,
-            decoration: const InputDecoration(hintText: 'Name'),
-            onSubmitted: (_) => _save(ctx, ctrl, controller.text),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => _save(ctx, ctrl, controller.text),
-              child: const Text('Save'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            void save() {
+              final name = nameController.text.trim();
+              if (name.isEmpty) {
+                setState(() => nameError = "Name can't be empty");
+                return;
+              }
+              final taken = ref
+                  .read(draftConfigProvider)
+                  .participants
+                  .any(
+                    (other) =>
+                        other.id != p.id &&
+                        other.name.trim().toLowerCase() == name.toLowerCase(),
+                  );
+              if (taken) {
+                setState(() => nameError = 'Name already taken');
+                return;
+              }
+              final digits = _jerseyDigits(numberController.text);
+              final number = digits.isEmpty ? p.number : digits.padLeft(2, '0');
+              ctrl.updateManager(p.copyWith(name: name, number: number));
+              Navigator.pop(ctx);
+            }
+
+            return AlertDialog(
+              backgroundColor: tk.surface,
+              title: Text('Manager name', style: tk.title),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    autofocus: true,
+                    style: tk.body,
+                    inputFormatters: [LengthLimitingTextInputFormatter(24)],
+                    decoration: InputDecoration(
+                      hintText: 'Name',
+                      errorText: nameError,
+                    ),
+                    onChanged: (_) {
+                      if (nameError != null) {
+                        setState(() => nameError = null);
+                      }
+                    },
+                    onSubmitted: (_) => save(),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: numberController,
+                    style: tk.body,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [_JerseyNumberFormatter()],
+                    decoration: const InputDecoration(hintText: 'Jersey #'),
+                    onSubmitted: (_) => save(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(onPressed: save, child: const Text('Save')),
+              ],
+            );
+          },
         );
       },
     );
   }
+}
 
-  void _save(BuildContext ctx, DraftConfigController ctrl, String name) {
-    if (name.trim().isNotEmpty) {
-      ctrl.updateManager(p.copyWith(name: name.trim()));
-    }
-    Navigator.pop(ctx);
+String _jerseyDigits(String value) {
+  final digits = value.replaceAll(RegExp(r'\D'), '');
+  return digits.length <= 2 ? digits : digits.substring(0, 2);
+}
+
+class _JerseyNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = _jerseyDigits(newValue.text);
+    return TextEditingValue(
+      text: digits,
+      selection: TextSelection.collapsed(offset: digits.length),
+    );
   }
 }
 

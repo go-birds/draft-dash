@@ -102,6 +102,63 @@ void main() {
     expect(storage.loadConfig()?.participants.map((p) => p.name), ['Jordan']);
   });
 
+  test('setBudget clamps values to the 0..100000 range', () async {
+    final (:container, :storage) = await _container();
+    addTearDown(container.dispose);
+    final config = container.read(draftConfigProvider.notifier);
+
+    config.addManager('Nick');
+    final id = container.read(draftConfigProvider).participants.single.id;
+
+    config.setBudget(id, -50);
+    expect(container.read(draftConfigProvider).participants.single.budget, 0);
+
+    config.setBudget(id, 9999999);
+    expect(
+      container.read(draftConfigProvider).participants.single.budget,
+      100000,
+    );
+    expect(storage.loadConfig()?.participants.single.budget, 100000);
+  });
+
+  test('setWeight clamps values to the 0.1..10.0 range', () async {
+    final (:container, :storage) = await _container();
+    addTearDown(container.dispose);
+    final config = container.read(draftConfigProvider.notifier);
+
+    config.addManager('Nick');
+    final id = container.read(draftConfigProvider).participants.single.id;
+
+    config.setWeight(id, 0);
+    expect(container.read(draftConfigProvider).participants.single.weight, .1);
+
+    config.setWeight(id, -3);
+    expect(container.read(draftConfigProvider).participants.single.weight, .1);
+
+    config.setWeight(id, 50);
+    expect(container.read(draftConfigProvider).participants.single.weight, 10);
+    expect(storage.loadConfig()?.participants.single.weight, 10);
+  });
+
+  test('addManager is a no-op once the roster hits 16 managers', () async {
+    final (:container, :storage) = await _container();
+    addTearDown(container.dispose);
+    final config = container.read(draftConfigProvider.notifier);
+
+    for (var i = 0; i < DraftConfigController.maxManagers + 3; i++) {
+      config.addManager('Manager $i');
+    }
+
+    expect(
+      container.read(draftConfigProvider).participants,
+      hasLength(DraftConfigController.maxManagers),
+    );
+    expect(
+      storage.loadConfig()?.participants,
+      hasLength(DraftConfigController.maxManagers),
+    );
+  });
+
   test('manager removal also clears their ledger entries', () async {
     final (:container, :storage) = await _container();
     addTearDown(container.dispose);

@@ -6,6 +6,7 @@ import 'package:draft_race/ui/screens/setup_screen.dart';
 import 'package:draft_race/ui/state/providers.dart';
 import 'package:draft_race/ui/theme/app_tokens.dart';
 import 'package:draft_race/ui/theme/themes.dart';
+import 'package:draft_race/ui/widgets/buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -71,39 +72,57 @@ void main() {
       await tester.pumpAndSettle();
     }
   });
+
+  testWidgets('add manager disables with helper text once the league is full', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final storage = await _storageWithManagers(
+      count: DraftConfigController.maxManagers,
+    );
+    await tester.pumpWidget(_setupHarness(storage));
+    await tester.pumpAndSettle();
+
+    await _dragUntilTextVisible(
+      tester,
+      'League is full (16 max)',
+      maxDrags: 30,
+    );
+    expect(find.text('League is full (16 max)'), findsOneWidget);
+
+    final addButton = tester.widget<GhostButton>(
+      find.widgetWithText(GhostButton, '＋ ADD MANAGER'),
+    );
+    expect(addButton.onPressed, isNull);
+  });
 }
 
-Future<void> _dragUntilTextVisible(WidgetTester tester, String label) async {
-  for (var i = 0; i < 8 && find.text(label).evaluate().isEmpty; i++) {
+Future<void> _dragUntilTextVisible(
+  WidgetTester tester,
+  String label, {
+  int maxDrags = 8,
+}) async {
+  for (var i = 0; i < maxDrags && find.text(label).evaluate().isEmpty; i++) {
     await tester.drag(find.byType(ListView).first, const Offset(0, -260));
     await tester.pumpAndSettle();
   }
 }
 
-Future<StorageService> _storageWithManagers() async {
+Future<StorageService> _storageWithManagers({int count = 3}) async {
   SharedPreferences.setMockInitialValues({});
   final storage = await StorageService.open();
   await storage.saveConfig(
-    const DraftConfig(
+    DraftConfig(
       participants: [
-        Participant(
-          id: 'p1',
-          name: 'Nick',
-          number: '07',
-          colorValue: 0xFF3A86FF,
-        ),
-        Participant(
-          id: 'p2',
-          name: 'Jordan',
-          number: '23',
-          colorValue: 0xFFE63946,
-        ),
-        Participant(
-          id: 'p3',
-          name: 'Taylor',
-          number: '12',
-          colorValue: 0xFFFFB703,
-        ),
+        for (var i = 0; i < count; i++)
+          Participant(
+            id: 'p${i + 1}',
+            name: 'Manager ${i + 1}',
+            number: kJerseyNumbers[i % kJerseyNumbers.length],
+            colorValue: kJerseyPalette[i % kJerseyPalette.length],
+          ),
       ],
       mode: DraftMode.race,
     ),

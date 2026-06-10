@@ -181,11 +181,27 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               child: GhostButton(
                                 '＋ ADD MANAGER',
                                 height: 46,
-                                onPressed: ctrl.addManager,
+                                onPressed:
+                                    cfg.participants.length >=
+                                        DraftConfigController.maxManagers
+                                    ? null
+                                    : ctrl.addManager,
                               ),
                             ),
                           ],
                         ),
+                        if (cfg.participants.length >=
+                            DraftConfigController.maxManagers) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'League is full (16 max)',
+                            textAlign: TextAlign.center,
+                            style: tk.body.copyWith(
+                              fontSize: 13,
+                              color: tk.textMuted,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

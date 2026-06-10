@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:progenitor_core/progenitor_core.dart';
@@ -6,17 +7,28 @@ import 'storage/storage_service.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/state/providers.dart';
 import 'ui/theme/app_tokens.dart';
+import 'ui/widgets/error_boundary.dart';
 
 // Inject SENTRY_DSN at build time: --dart-define=SENTRY_DSN=https://...
 // Empty string = Sentry no-ops (safe for debug builds).
-Future<void> main() => ProgenitorBootstrap.runWithStorage<StorageService>(
-  sentryDsn: const String.fromEnvironment('SENTRY_DSN'),
-  openStorage: StorageService.open,
-  app: (storage) => ProviderScope(
-    overrides: [storageProvider.overrideWithValue(storage)],
-    child: const MyApp(),
-  ),
-);
+Future<void> main() {
+  // Branded fallback instead of the grey error widget in release builds;
+  // debug keeps Flutter's default red diagnostics. This only changes
+  // rendering — FlutterError.onError (Sentry reporting, wired by
+  // ProgenitorBootstrap) is untouched.
+  if (!kDebugMode) {
+    ErrorWidget.builder = (FlutterErrorDetails details) =>
+        const ErrorBoundaryFallback();
+  }
+  return ProgenitorBootstrap.runWithStorage<StorageService>(
+    sentryDsn: const String.fromEnvironment('SENTRY_DSN'),
+    openStorage: StorageService.open,
+    app: (storage) => ProviderScope(
+      overrides: [storageProvider.overrideWithValue(storage)],
+      child: const MyApp(),
+    ),
+  );
+}
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
