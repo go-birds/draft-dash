@@ -7,6 +7,7 @@ import 'package:draft_race/ui/state/providers.dart';
 import 'package:draft_race/ui/theme/app_tokens.dart';
 import 'package:draft_race/ui/theme/themes.dart';
 import 'package:draft_race/ui/widgets/confetti_overlay.dart';
+import 'package:draft_race/ui/widgets/top_picks_podium.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,10 +32,78 @@ void main() {
       await tester.pumpWidget(_resultHarness(container));
 
       expect(find.textContaining('FIRST OVERALL PICK'), findsOneWidget);
-      expect(find.text('TOP PICK PODIUM'), findsOneWidget);
       expect(find.text('Nick'), findsOneWidget);
       expect(find.text('Jordan'), findsOneWidget);
       expect(find.text('Taylor'), findsOneWidget);
+    },
+  );
+
+  testWidgets('normal-height viewport shows the top picks podium', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1280);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final container = await _container();
+    addTearDown(container.dispose);
+
+    final config = container.read(draftConfigProvider.notifier);
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    config.addManager('Taylor');
+    container.read(draftControllerProvider.notifier).run();
+
+    await tester.pumpWidget(_resultHarness(container));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(TopPicksPodium), findsOneWidget);
+    expect(find.text('TOP PICK PODIUM'), findsOneWidget);
+  });
+
+  testWidgets(
+    'short narrow viewport (320x568) shrinks the banner, drops the podium, '
+    'and does not overflow',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final container = await _container();
+      addTearDown(container.dispose);
+
+      final config = container.read(draftConfigProvider.notifier);
+      // A deliberately long name to stress the pick rows.
+      config.addManager('Bartholomew Featherstonehaugh III');
+      config.addManager('Jordan');
+      config.addManager('Taylor');
+      container.read(draftControllerProvider.notifier).run();
+
+      await tester.pumpWidget(_resultHarness(container));
+      await tester.pumpAndSettle();
+
+      // Strict: no layout overflow anywhere on the small screen.
+      expect(tester.takeException(), isNull);
+
+      // The podium header is omitted to give the board room.
+      expect(find.byType(TopPicksPodium), findsNothing);
+      expect(find.text('TOP PICK PODIUM'), findsNothing);
+
+      // The champ banner is still there, in its shrunken form.
+      expect(find.textContaining('FIRST OVERALL PICK'), findsOneWidget);
+
+      // The MR. IRRELEVANT chip row also stays within bounds.
+      final badge = find.text('MR. IRRELEVANT');
+      await tester.scrollUntilVisible(badge, 80);
+      expect(badge, findsOneWidget);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -92,9 +161,7 @@ void main() {
     expect(badge, findsOneWidget);
 
     // The badge's pick row holds the last pick's name, not the first pick's.
-    final badgeRow = find
-        .ancestor(of: badge, matching: find.byType(Row))
-        .first;
+    final badgeRow = find.ancestor(of: badge, matching: find.byType(Row)).first;
     expect(
       find.descendant(of: badgeRow, matching: find.text(lastName)),
       findsOneWidget,
@@ -269,10 +336,7 @@ void main() {
 
     await tester.pumpWidget(_resultHarness(container));
     await tester.pumpAndSettle();
-    // The base result screen has known 320px-wide layout overflows that are
-    // tracked separately; drain them so the assertions below only cover the
-    // recap preview sheet.
-    tester.takeException();
+    expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('COPY RECAP'));
     await tester.pumpAndSettle();
