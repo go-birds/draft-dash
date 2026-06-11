@@ -10,6 +10,7 @@ import '../../domain/draft/draft_engine.dart';
 import '../../domain/draft/draft_mode.dart';
 import '../../domain/draft/draft_result.dart';
 import '../../domain/draft/league_ledger.dart';
+import '../../domain/draft/league_stats.dart';
 import '../../domain/draft/draft_settings.dart';
 import '../../domain/draft/participant.dart';
 import '../../storage/storage_service.dart';
@@ -418,4 +419,9 @@ class HistoryController extends Notifier<List<DraftResult>> {
 
 final historyProvider = NotifierProvider<HistoryController, List<DraftResult>>(
   HistoryController.new,
+);
+
+/// Aggregated luck-vs-fate stats derived from the saved draft history.
+final leagueStatsProvider = Provider<LeagueStats>(
+  (ref) => LeagueStats.fromHistory(ref.watch(historyProvider)),
 );

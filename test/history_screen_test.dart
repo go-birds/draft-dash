@@ -94,6 +94,40 @@ void main() {
     expect(find.text('Nick'), findsNothing);
   });
 
+  testWidgets('luck index renders once two proofed drafts are saved', (
+    tester,
+  ) async {
+    // Nick takes pick 1 in both drafts, Taylor pick 3 in both: with equal
+    // weights (expected pick 2.0) Nick is luckiest, Taylor snake-bitten.
+    final storage = await _storageWithHistory([
+      _luckResult(seed: 1, order: const ['p1', 'p2', 'p3']),
+      _luckResult(seed: 2, order: const ['p1', 'p2', 'p3']),
+    ]);
+
+    await tester.pumpWidget(_historyHarness(storage));
+
+    expect(find.text('LUCK INDEX'), findsOneWidget);
+    expect(find.textContaining('Luckiest: Nick'), findsOneWidget);
+    expect(find.textContaining('+1.0 picks ahead of fate'), findsOneWidget);
+    expect(find.textContaining('Snake-bitten: Taylor'), findsOneWidget);
+    expect(find.textContaining('−1.0'), findsWidgets);
+    // Per-manager rows list everyone.
+    expect(find.text('Jordan'), findsOneWidget);
+  });
+
+  testWidgets('luck index stays hidden with fewer than two drafts', (
+    tester,
+  ) async {
+    final storage = await _storageWithHistory([
+      _luckResult(seed: 1, order: const ['p1', 'p2', 'p3']),
+    ]);
+
+    await tester.pumpWidget(_historyHarness(storage));
+
+    expect(find.text('LUCK INDEX'), findsNothing);
+    expect(find.textContaining('Luckiest:'), findsNothing);
+  });
+
   testWidgets('saved board detail opens the proof explainer', (tester) async {
     final storage = await _storageWithHistory([_savedResultWithProof()]);
 
@@ -177,6 +211,28 @@ DraftResult _savedResultWithProof() => DraftResult(
     seed: 42,
   ),
 );
+
+/// A proofed race draft over the Sunday League roster (equal weights).
+DraftResult _luckResult({required int seed, required List<String> order}) {
+  const roster = [
+    Participant(id: 'p1', name: 'Nick', number: '07', colorValue: 0xFF3A86FF),
+    Participant(id: 'p2', name: 'Jordan', number: '23', colorValue: 0xFFE63946),
+    Participant(id: 'p3', name: 'Taylor', number: '12', colorValue: 0xFFFFB703),
+  ];
+  return DraftResult(
+    order: order,
+    seed: seed,
+    mode: DraftMode.race,
+    createdAt: DateTime.utc(2026, 6, 7),
+    leagueName: 'Sunday League',
+    rosterSnapshot: roster,
+    proofMetadata: DraftProofMetadata.fromConfig(
+      const DraftConfig(participants: roster, mode: DraftMode.race),
+      executedAt: DateTime.utc(2026, 6, 7, 12, 0, 0),
+      seed: seed,
+    ),
+  );
+}
 
 Future<StorageService> _storageWithHistory(List<DraftResult> history) async {
   SharedPreferences.setMockInitialValues({});

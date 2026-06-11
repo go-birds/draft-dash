@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../../domain/draft/draft_mode.dart';
 import '../../domain/draft/draft_recap.dart';
 import '../../domain/draft/draft_result.dart';
+import '../../domain/draft/league_stats.dart';
 import '../../domain/draft/participant.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
@@ -27,6 +28,10 @@ class HistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tk = context.tokens;
     final history = ref.watch(historyProvider);
+    final stats = ref.watch(leagueStatsProvider);
+    // Only surface the Luck Index once there's a real sample; a single draft
+    // is just noise.
+    final showLuck = stats.records.isNotEmpty && stats.draftCount >= 2;
 
     return Scaffold(
       backgroundColor: tk.background,
@@ -76,9 +81,12 @@ class HistoryScreen extends ConsumerWidget {
             )
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              itemCount: history.length,
+              itemCount: history.length + (showLuck ? 1 : 0),
               itemBuilder: (_, i) {
-                final r = history[i];
+                if (showLuck && i == 0) {
+                  return _LuckIndexSection(stats: stats, history: history);
+                }
+                final r = history[showLuck ? i - 1 : i];
                 final ordered = r.resolve(const []);
                 final boardReady =
                     r.order.isNotEmpty && ordered.length == r.order.length;
@@ -227,6 +235,150 @@ class HistoryScreen extends ConsumerWidget {
                 );
               },
             ),
+    );
+  }
+}
+
+/// "+1.2" / "−0.4" with a true minus sign, matching the callout copy.
+String _signedLuck(double v) =>
+    '${v < 0 ? '−' : '+'}${v.abs().toStringAsFixed(1)}';
+
+class _LuckIndexSection extends StatelessWidget {
+  final LeagueStats stats;
+  final List<DraftResult> history;
+
+  const _LuckIndexSection({required this.stats, required this.history});
+
+  /// Best-effort jersey lookup for a luck record: match a roster snapshot by
+  /// id first, then by case-insensitive name (ids can change across seasons).
+  Participant? _participantFor(LuckRecord record) {
+    Participant? byName;
+    for (final r in history) {
+      for (final p in r.rosterSnapshot) {
+        if (p.id == record.managerId) return p;
+        if (byName == null &&
+            p.name.trim().toLowerCase() == record.name.trim().toLowerCase()) {
+          byName = p;
+        }
+      }
+    }
+    return byName;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    final luckiest = stats.luckiest;
+    final unluckiest = stats.unluckiest;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: tk.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: tk.scoreboardLine),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'LUCK INDEX',
+              style: tk.label.copyWith(color: tk.gold, letterSpacing: 2),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Expected pick vs. where fate actually landed, '
+              'across ${stats.draftCount} drafts.',
+              style: tk.body.copyWith(fontSize: 11, color: tk.textMuted),
+            ),
+            if (luckiest != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                '🍀 Luckiest: ${luckiest.name}, '
+                '${_signedLuck(luckiest.avgLuck)} picks ahead of fate',
+                style: tk.body.copyWith(
+                  fontSize: 13,
+                  color: tk.led,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+            if (unluckiest != null && !identical(unluckiest, luckiest)) ...[
+              const SizedBox(height: 6),
+              Text(
+                '🪨 Snake-bitten: ${unluckiest.name}, '
+                '${_signedLuck(unluckiest.avgLuck)}',
+                style: tk.body.copyWith(
+                  fontSize: 13,
+                  color: tk.whistle,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            for (final record in stats.records)
+              _LuckRow(record: record, participant: _participantFor(record)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LuckRow extends StatelessWidget {
+  final LuckRecord record;
+  final Participant? participant;
+
+  const _LuckRow({required this.record, required this.participant});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    final p = participant;
+    final luckColor = record.avgLuck > 0
+        ? tk.led
+        : record.avgLuck < 0
+        ? tk.whistle
+        : tk.textMuted;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          JerseyChip(
+            color: p != null ? Color(p.colorValue) : tk.textMuted,
+            number: p?.number ?? '–',
+            size: 28,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              record.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: tk.body.copyWith(fontSize: 13),
+            ),
+          ),
+          Text(
+            '${record.drafts} ${record.drafts == 1 ? 'draft' : 'drafts'} '
+            '· best #${record.bestPick}',
+            style: tk.body.copyWith(fontSize: 11, color: tk.textMuted),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 44,
+            child: Text(
+              _signedLuck(record.avgLuck),
+              textAlign: TextAlign.right,
+              style: tk.mono.copyWith(
+                fontSize: 13,
+                color: luckColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
