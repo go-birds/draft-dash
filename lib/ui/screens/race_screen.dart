@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/draft/participant.dart';
+import '../../domain/draft/taunts.dart';
 import '../../services/feedback.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
@@ -28,6 +29,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
       {}; // id -> fraction of race when it finishes
   late final int _n;
   late final String? _winnerId;
+  late final int _seed;
 
   int _countdown = 3; // 3,2,1,0(GO)
   bool _racing = false;
@@ -50,6 +52,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
 
     final order = result?.order ?? [for (final p in _lineup) p.id];
     _winnerId = order.isEmpty ? null : order.first;
+    _seed = result?.seed ?? 0;
     final rand = Random(result?.seed ?? 1);
     double prev = 0;
     for (var r = 0; r < order.length; r++) {
@@ -205,7 +208,14 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
                   if (_countdown > -1 && !_racing)
                     _Countdown(value: _countdown, introProgress: introT),
                   if (_finished)
-                    _FinishFlash(winner: winner ?? liveOrder.first),
+                    _FinishFlash(
+                      winner: winner ?? liveOrder.first,
+                      taunt: tauntFor(
+                        custom: (winner ?? liveOrder.first).taunt,
+                        seed: _seed,
+                        pickIndex: 0,
+                      ),
+                    ),
                 ],
               );
             },
@@ -400,7 +410,8 @@ class _Countdown extends StatelessWidget {
 
 class _FinishFlash extends StatelessWidget {
   final Participant winner;
-  const _FinishFlash({required this.winner});
+  final String taunt;
+  const _FinishFlash({required this.winner, required this.taunt});
 
   @override
   Widget build(BuildContext context) {
@@ -454,6 +465,33 @@ class _FinishFlash extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text('CLAIMS PICK #1', style: tk.title.copyWith(color: tk.gold)),
+            const SizedBox(height: 6),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOutCubic,
+              builder: (_, t, child) => Opacity(
+                opacity: t,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - t) * 10),
+                  child: child,
+                ),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Text(
+                  '“$taunt”',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: tk.body.copyWith(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: tk.textPrimary.withValues(alpha: .85),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

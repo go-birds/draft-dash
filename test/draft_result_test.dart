@@ -5,6 +5,56 @@ import 'package:draft_race/domain/draft/participant.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('Participant taunt serialization', () {
+    test('round-trips a non-null taunt through json', () {
+      const p = Participant(
+        id: 'p1',
+        name: 'Nick',
+        number: '07',
+        colorValue: 0xFF3A86FF,
+        taunt: 'Built different.',
+      );
+
+      final json = p.toJson();
+      expect(json['taunt'], 'Built different.');
+
+      final decoded = Participant.fromJson(json);
+      expect(decoded, p);
+      expect(decoded.taunt, 'Built different.');
+    });
+
+    test('omits the taunt key when null and round-trips as null', () {
+      const p = Participant(
+        id: 'p1',
+        name: 'Nick',
+        number: '07',
+        colorValue: 0xFF3A86FF,
+      );
+
+      final json = p.toJson();
+      expect(json.containsKey('taunt'), isFalse);
+
+      final decoded = Participant.fromJson(json);
+      expect(decoded, p);
+      expect(decoded.taunt, isNull);
+    });
+
+    test('copyWith keeps, replaces, and clears the taunt', () {
+      const p = Participant(
+        id: 'p1',
+        name: 'Nick',
+        number: '07',
+        colorValue: 0xFF3A86FF,
+        taunt: 'Scoreboard.',
+      );
+
+      expect(p.copyWith(name: 'Nicky').taunt, 'Scoreboard.');
+      expect(p.copyWith(taunt: 'Dynasty starts now.').taunt,
+          'Dynasty starts now.');
+      expect(p.copyWith(taunt: null).taunt, isNull);
+    });
+  });
+
   group('DraftResult rosterSnapshot', () {
     test('round-trips saved manager details through json', () {
       final result = DraftResult(

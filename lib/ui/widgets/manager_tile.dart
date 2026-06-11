@@ -206,6 +206,7 @@ class ManagerTile extends ConsumerWidget {
   ) {
     final nameController = TextEditingController(text: p.name);
     final numberController = TextEditingController(text: p.number);
+    final tauntController = TextEditingController(text: p.taunt ?? '');
     String? nameError;
     showDialog<void>(
       context: context,
@@ -234,6 +235,7 @@ class ManagerTile extends ConsumerWidget {
               final digits = _jerseyDigits(numberController.text);
               final number = digits.isEmpty ? p.number : digits.padLeft(2, '0');
               ctrl.updateManager(p.copyWith(name: name, number: number));
+              ctrl.setTaunt(p.id, tauntController.text);
               Navigator.pop(ctx);
             }
 
@@ -266,6 +268,17 @@ class ManagerTile extends ConsumerWidget {
                     keyboardType: TextInputType.number,
                     inputFormatters: [_JerseyNumberFormatter()],
                     decoration: const InputDecoration(hintText: 'Jersey #'),
+                    onSubmitted: (_) => save(),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: tauntController,
+                    style: tk.body,
+                    maxLength: 60,
+                    decoration: const InputDecoration(
+                      labelText: 'Taunt',
+                      hintText: 'Walk-up line for draft night',
+                    ),
                     onSubmitted: (_) => save(),
                   ),
                 ],

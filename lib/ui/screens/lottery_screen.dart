@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/draft/nba_lottery.dart';
 import '../../domain/draft/participant.dart';
+import '../../domain/draft/taunts.dart';
 import '../../services/feedback.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
@@ -98,6 +99,13 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
         : justWon == null
         ? 'Update after every ball.'
         : 'Winning combo ${currentRound.balls.join('-')}';
+    final tauntLine = justWon == null
+        ? null
+        : tauntFor(
+            custom: justWon.taunt,
+            seed: result?.seed ?? 0,
+            pickIndex: _roundIndex,
+          );
 
     Future<void> drawNext() async {
       if (currentRound == null || _pendingBall != null) return;
@@ -241,6 +249,35 @@ class _LotteryScreenState extends ConsumerState<LotteryScreen>
                                 ),
                               ),
                             ),
+                            if (tauntLine != null)
+                              TweenAnimationBuilder<double>(
+                                key: ValueKey('taunt-$_roundIndex'),
+                                tween: Tween(begin: 0, end: 1),
+                                duration: const Duration(milliseconds: 420),
+                                curve: Curves.easeOutCubic,
+                                builder: (_, t, child) => Opacity(
+                                  opacity: t,
+                                  child: Transform.translate(
+                                    offset: Offset(0, (1 - t) * 6),
+                                    child: child,
+                                  ),
+                                ),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 240,
+                                  ),
+                                  child: Text(
+                                    '“$tauntLine”',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: tk.body.copyWith(
+                                      fontSize: 11.5,
+                                      fontStyle: FontStyle.italic,
+                                      color: tk.textMuted,
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ],

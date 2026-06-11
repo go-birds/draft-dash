@@ -198,6 +198,15 @@ class DraftConfigController extends Notifier<DraftConfig> {
     updateManager(p.copyWith(budget: b.clamp(0, 100000)));
   }
 
+  void setTaunt(String id, String? taunt) {
+    final p = _tryById(id);
+    if (p == null) return;
+    final trimmed = taunt?.trim();
+    updateManager(
+      p.copyWith(taunt: (trimmed == null || trimmed.isEmpty) ? null : trimmed),
+    );
+  }
+
   void reorder(int oldIndex, int newIndex) {
     final list = [..._ps];
     if (newIndex > oldIndex) newIndex -= 1;

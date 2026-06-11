@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/draft/participant.dart';
+import '../../domain/draft/taunts.dart';
 import '../../services/feedback.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
@@ -74,6 +75,11 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
                 itemBuilder: (_, i) => _FlipCard(
                   pick: i + 1,
                   participant: picks[i],
+                  taunt: tauntFor(
+                    custom: picks[i].taunt,
+                    seed: result?.seed ?? 0,
+                    pickIndex: i,
+                  ),
                   revealed: i < _revealed,
                   isNext: i == _revealed,
                   onTap: i == _revealed ? flipNext : null,
@@ -111,6 +117,7 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
 class _FlipCard extends StatefulWidget {
   final int pick;
   final Participant participant;
+  final String taunt;
   final bool revealed;
   final bool isNext;
   final VoidCallback? onTap;
@@ -118,6 +125,7 @@ class _FlipCard extends StatefulWidget {
   const _FlipCard({
     required this.pick,
     required this.participant,
+    required this.taunt,
     required this.revealed,
     required this.isNext,
     required this.onTap,
@@ -173,7 +181,11 @@ class _FlipCardState extends State<_FlipCard>
                 : Transform(
                     alignment: Alignment.center,
                     transform: Matrix4.identity()..rotateY(pi),
-                    child: _CardFace(pick: widget.pick, p: widget.participant),
+                    child: _CardFace(
+                      pick: widget.pick,
+                      p: widget.participant,
+                      taunt: widget.taunt,
+                    ),
                   ),
           );
         },
@@ -231,7 +243,8 @@ class _CardBack extends StatelessWidget {
 class _CardFace extends StatelessWidget {
   final int pick;
   final Participant p;
-  const _CardFace({required this.pick, required this.p});
+  final String taunt;
+  const _CardFace({required this.pick, required this.p, required this.taunt});
 
   @override
   Widget build(BuildContext context) {
@@ -275,6 +288,33 @@ class _CardFace extends StatelessWidget {
                     child: Text(
                       p.name.toUpperCase(),
                       style: tk.displayLarge.copyWith(fontSize: 20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 450),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, t, child) => Opacity(
+                    opacity: t,
+                    child: Transform.translate(
+                      offset: Offset(0, (1 - t) * 6),
+                      child: child,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text(
+                      '“$taunt”',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: tk.body.copyWith(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: tk.textMuted,
+                      ),
                     ),
                   ),
                 ),

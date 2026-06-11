@@ -177,9 +177,9 @@ void main() {
       await tester.pumpWidget(_managerTileHarness(storage));
 
       await _openEditDialog(tester, 'Nick');
-      await tester.enterText(find.byType(TextField).last, 'a1b2c3');
+      await tester.enterText(find.byType(TextField).at(1), 'a1b2c3');
 
-      final field = tester.widget<TextField>(find.byType(TextField).last);
+      final field = tester.widget<TextField>(find.byType(TextField).at(1));
       expect(field.controller!.text, '12');
 
       await tester.tap(find.text('Save'));
@@ -192,7 +192,7 @@ void main() {
       await tester.pumpWidget(_managerTileHarness(storage));
 
       await _openEditDialog(tester, 'Nick');
-      await tester.enterText(find.byType(TextField).last, '7');
+      await tester.enterText(find.byType(TextField).at(1), '7');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
@@ -205,11 +205,64 @@ void main() {
       await tester.pumpWidget(_managerTileHarness(storage));
 
       await _openEditDialog(tester, 'Nick');
-      await tester.enterText(find.byType(TextField).last, '');
+      await tester.enterText(find.byType(TextField).at(1), '');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
       expect(find.text('23'), findsOneWidget);
+    });
+  });
+
+  group('taunt editing', () {
+    testWidgets('taunt entered in the edit dialog is saved trimmed', (
+      tester,
+    ) async {
+      final storage = await _twoManagerStorage();
+      await tester.pumpWidget(_managerTileHarness(storage));
+
+      await _openEditDialog(tester, 'Nick');
+      expect(find.text('Walk-up line for draft night'), findsOneWidget);
+
+      await tester.enterText(
+        find.byType(TextField).last,
+        '  Built different.  ',
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      final saved = storage.loadConfig()!.participants.first;
+      expect(saved.name, 'Nick');
+      expect(saved.taunt, 'Built different.');
+    });
+
+    testWidgets('clearing the taunt stores null', (tester) async {
+      final storage = await _singleManagerStorage(
+        number: '07',
+        taunt: 'Scoreboard.',
+      );
+      await tester.pumpWidget(_managerTileHarness(storage));
+
+      await _openEditDialog(tester, 'Nick');
+      final field = tester.widget<TextField>(find.byType(TextField).last);
+      expect(field.controller!.text, 'Scoreboard.');
+
+      await tester.enterText(find.byType(TextField).last, '   ');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(storage.loadConfig()!.participants.first.taunt, isNull);
+    });
+
+    testWidgets('taunt input is limited to 60 characters', (tester) async {
+      final storage = await _twoManagerStorage();
+      await tester.pumpWidget(_managerTileHarness(storage));
+
+      await _openEditDialog(tester, 'Nick');
+      await tester.enterText(find.byType(TextField).last, 'A' * 70);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(storage.loadConfig()!.participants.first.taunt, 'A' * 60);
     });
   });
 }
@@ -238,7 +291,10 @@ Future<StorageService> _twoManagerStorage() async {
   return storage;
 }
 
-Future<StorageService> _singleManagerStorage({required String number}) async {
+Future<StorageService> _singleManagerStorage({
+  required String number,
+  String? taunt,
+}) async {
   SharedPreferences.setMockInitialValues({});
   final storage = await StorageService.open();
   await storage.saveConfig(
@@ -249,6 +305,7 @@ Future<StorageService> _singleManagerStorage({required String number}) async {
           name: 'Nick',
           number: number,
           colorValue: 0xFF3A86FF,
+          taunt: taunt,
         ),
       ],
     ),

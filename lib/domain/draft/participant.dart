@@ -19,6 +19,9 @@ class Participant {
   /// Starting ColemanBucks budget for the Bidding/Auction mode.
   final int budget;
 
+  /// Optional walk-up line shown when this manager's pick is revealed.
+  final String? taunt;
+
   const Participant({
     required this.id,
     required this.name,
@@ -26,7 +29,12 @@ class Participant {
     required this.colorValue,
     this.weight = 1.0,
     this.budget = 100,
+    this.taunt,
   });
+
+  /// Sentinel so [copyWith] can distinguish "leave taunt alone" from
+  /// "clear taunt to null".
+  static const Object _unsetTaunt = Object();
 
   Participant copyWith({
     String? id,
@@ -35,6 +43,7 @@ class Participant {
     int? colorValue,
     double? weight,
     int? budget,
+    Object? taunt = _unsetTaunt,
   }) {
     return Participant(
       id: id ?? this.id,
@@ -43,6 +52,7 @@ class Participant {
       colorValue: colorValue ?? this.colorValue,
       weight: weight ?? this.weight,
       budget: budget ?? this.budget,
+      taunt: identical(taunt, _unsetTaunt) ? this.taunt : taunt as String?,
     );
   }
 
@@ -53,6 +63,7 @@ class Participant {
     'color': colorValue,
     'weight': weight,
     'budget': budget,
+    if (taunt != null) 'taunt': taunt,
   };
 
   static Participant fromJson(Map<String, dynamic> j) => Participant(
@@ -62,6 +73,7 @@ class Participant {
     colorValue: (j['color'] as num).toInt(),
     weight: (j['weight'] as num?)?.toDouble() ?? 1.0,
     budget: (j['budget'] as num?)?.toInt() ?? 100,
+    taunt: j['taunt'] as String?,
   );
 
   @override
@@ -72,8 +84,10 @@ class Participant {
       other.number == number &&
       other.colorValue == colorValue &&
       other.weight == weight &&
-      other.budget == budget;
+      other.budget == budget &&
+      other.taunt == taunt;
 
   @override
-  int get hashCode => Object.hash(id, name, number, colorValue, weight, budget);
+  int get hashCode =>
+      Object.hash(id, name, number, colorValue, weight, budget, taunt);
 }
