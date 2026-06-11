@@ -35,11 +35,17 @@ class TopPicksPodium extends StatelessWidget {
             children: [
               Icon(Icons.military_tech_rounded, color: tk.gold, size: 18),
               const SizedBox(width: 8),
-              Text(
-                'TOP PICK PODIUM',
-                style: tk.label.copyWith(color: tk.gold, letterSpacing: 2),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'TOP PICK PODIUM',
+                    style: tk.label.copyWith(color: tk.gold, letterSpacing: 2),
+                  ),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 'LOCKED',
                 style: tk.mono.copyWith(fontSize: 11, color: tk.led),
