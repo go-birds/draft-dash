@@ -5,17 +5,28 @@ import 'package:flutter/services.dart';
 import '../../domain/draft/participant.dart';
 import '../../domain/draft/draft_recap.dart';
 import '../../domain/draft/draft_result.dart';
+import '../../services/feedback.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/buttons.dart';
+import '../widgets/confetti_overlay.dart';
 import '../widgets/jersey_chip.dart';
 import '../widgets/top_picks_podium.dart';
 
-class ResultScreen extends ConsumerWidget {
+class ResultScreen extends ConsumerStatefulWidget {
   const ResultScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends ConsumerState<ResultScreen> {
+  /// Set on the first build that shows a valid board, so commissioner
+  /// reorders/rebuilds don't replay the celebration cue.
+  bool _celebrated = false;
+
+  @override
+  Widget build(BuildContext context) {
     final tk = context.tokens;
     final result = ref.watch(draftControllerProvider);
     final cfg = ref.watch(draftConfigProvider);
@@ -37,6 +48,15 @@ class ResultScreen extends ConsumerWidget {
       return _UnavailableResult(resultProofCode: result.proofCode);
     }
     final champ = ordered.first;
+
+    if (!_celebrated) {
+      _celebrated = true;
+      // Haptic + SFX paired with the confetti burst; AppFeedback gates both
+      // on the user's sound/haptics settings.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) AppFeedback.of(ref).award();
+      });
+    }
 
     void reorder(int oldIndex, int newIndex) {
       final ids = [...result.order];
@@ -87,7 +107,12 @@ class ResultScreen extends ConsumerWidget {
       backgroundColor: tk.background,
       body: Column(
         children: [
-          _ChampBanner(champ: champ),
+          Stack(
+            children: [
+              _ChampBanner(champ: champ),
+              const Positioned.fill(child: ConfettiOverlay()),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
             child: Row(
@@ -191,6 +216,7 @@ class ResultScreen extends ConsumerWidget {
                 key: ValueKey(ordered[i].id),
                 index: i,
                 p: ordered[i],
+                last: ordered.length > 1 && i == ordered.length - 1,
               ),
             ),
           ),
@@ -637,7 +663,13 @@ class _ChampBanner extends StatelessWidget {
 class _PickRow extends StatelessWidget {
   final int index;
   final Participant p;
-  const _PickRow({super.key, required this.index, required this.p});
+  final bool last;
+  const _PickRow({
+    super.key,
+    required this.index,
+    required this.p,
+    this.last = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -667,6 +699,27 @@ class _PickRow extends StatelessWidget {
           JerseyChip(color: Color(p.colorValue), number: p.number, size: 42),
           const SizedBox(width: 14),
           Expanded(child: Text(p.name, style: tk.title.copyWith(fontSize: 18))),
+          if (last) ...[
+            const SizedBox(width: 8),
+            // The anti-gold: a deliberately muted chip for the final pick.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: tk.textMuted.withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: tk.textMuted.withValues(alpha: .45)),
+              ),
+              child: Text(
+                'MR. IRRELEVANT',
+                style: tk.label.copyWith(
+                  fontSize: 9,
+                  color: tk.textMuted,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Icon(Icons.drag_handle, color: tk.textMuted),
         ],
       ),

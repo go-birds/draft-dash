@@ -6,6 +6,7 @@ import 'package:draft_race/ui/screens/result_screen.dart';
 import 'package:draft_race/ui/state/providers.dart';
 import 'package:draft_race/ui/theme/app_tokens.dart';
 import 'package:draft_race/ui/theme/themes.dart';
+import 'package:draft_race/ui/widgets/confetti_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,6 +37,73 @@ void main() {
       expect(find.text('Taylor'), findsOneWidget);
     },
   );
+
+  testWidgets('result screen fires the confetti overlay on first build', (
+    tester,
+  ) async {
+    final container = await _container();
+    addTearDown(container.dispose);
+
+    final config = container.read(draftConfigProvider.notifier);
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    config.addManager('Taylor');
+    container.read(draftControllerProvider.notifier).run();
+
+    await tester.pumpWidget(_resultHarness(container));
+
+    expect(find.byType(ConfettiOverlay), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(ConfettiOverlay),
+        matching: find.byType(CustomPaint),
+      ),
+      findsOneWidget,
+    );
+
+    // Let the burst run out; nothing should throw.
+    await tester.pump(const Duration(seconds: 3));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('last pick row shows MR. IRRELEVANT and first pick does not', (
+    tester,
+  ) async {
+    final container = await _container();
+    addTearDown(container.dispose);
+
+    final config = container.read(draftConfigProvider.notifier);
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    config.addManager('Taylor');
+    container.read(draftControllerProvider.notifier).run();
+
+    await tester.pumpWidget(_resultHarness(container));
+
+    final ordered = container
+        .read(draftControllerProvider)!
+        .resolve(container.read(draftConfigProvider).participants);
+    final firstName = ordered.first.name;
+    final lastName = ordered.last.name;
+
+    final badge = find.text('MR. IRRELEVANT');
+    // The board list is lazy; bring the last pick row into view first.
+    await tester.scrollUntilVisible(badge, 80);
+    expect(badge, findsOneWidget);
+
+    // The badge's pick row holds the last pick's name, not the first pick's.
+    final badgeRow = find
+        .ancestor(of: badge, matching: find.byType(Row))
+        .first;
+    expect(
+      find.descendant(of: badgeRow, matching: find.text(lastName)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: badgeRow, matching: find.text(firstName)),
+      findsNothing,
+    );
+  });
 
   testWidgets('result screen falls back when manager details are missing', (
     tester,
