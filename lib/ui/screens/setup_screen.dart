@@ -108,266 +108,275 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     return Scaffold(
       backgroundColor: tk.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            // header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 16, 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.arrow_back_ios_new,
-                      size: 20,
-                      color: tk.textPrimary,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _league,
-                      style: tk.displayLarge.copyWith(fontSize: 24),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        border: InputBorder.none,
-                        hintText: 'LEAGUE NAME',
-                        hintStyle: tk.displayLarge.copyWith(
-                          fontSize: 24,
-                          color: tk.textMuted,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              children: [
+                // header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 6, 16, 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 20,
+                          color: tk.textPrimary,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _league,
+                          style: tk.displayLarge.copyWith(fontSize: 24),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            border: InputBorder.none,
+                            hintText: 'LEAGUE NAME',
+                            hintStyle: tk.displayLarge.copyWith(
+                              fontSize: 24,
+                              color: tk.textMuted,
+                            ),
+                          ),
+                          onChanged: (v) => ref
+                              .read(leagueNameProvider.notifier)
+                              .set(v.trim()),
                         ),
                       ),
-                      onChanged: (v) =>
-                          ref.read(leagueNameProvider.notifier).set(v.trim()),
-                    ),
+                      Text(
+                        '${cfg.participants.length} MGRS',
+                        style: tk.label.copyWith(color: tk.textMuted),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '${cfg.participants.length} MGRS',
-                    style: tk.label.copyWith(color: tk.textMuted),
-                  ),
-                ],
-              ),
-            ),
+                ),
 
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                children: [
-                  _panel(
-                    tk,
-                    title: 'FORMAT',
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.88,
-                      children: [
-                        for (final m in DraftMode.values)
-                          ModeCard(
-                            emoji: _emoji[m]!,
-                            title: m.label,
-                            blurb: m.blurb,
-                            bestFor: _modeInfo[m]!.bestFor,
-                            selected: cfg.mode == m,
-                            onTap: () {
-                              ctrl.setMode(m);
-                              setState(() {});
-                            },
-                            onInfoTap: () => _openModeInfo(context, m),
-                          ),
-                      ],
-                    ),
-                  ),
-                  _panel(
-                    tk,
-                    title: 'MANAGERS',
-                    child: cfg.participants.isEmpty
-                        ? _emptyRoster(tk, ctrl)
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              for (final p in cfg.participants) ...[
-                                ManagerTile(
-                                  key: ValueKey(p.id),
-                                  p: p,
-                                  mode: cfg.mode,
-                                  weightingEnabled: cfg.weightingEnabled,
-                                ),
-                                const SizedBox(height: 10),
-                              ],
-                              Row(
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    children: [
+                      _panel(
+                        tk,
+                        title: 'FORMAT',
+                        child: GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.88,
+                          children: [
+                            for (final m in DraftMode.values)
+                              ModeCard(
+                                emoji: _emoji[m]!,
+                                title: m.label,
+                                blurb: m.blurb,
+                                bestFor: _modeInfo[m]!.bestFor,
+                                selected: cfg.mode == m,
+                                onTap: () {
+                                  ctrl.setMode(m);
+                                  setState(() {});
+                                },
+                                onInfoTap: () => _openModeInfo(context, m),
+                              ),
+                          ],
+                        ),
+                      ),
+                      _panel(
+                        tk,
+                        title: 'MANAGERS',
+                        child: cfg.participants.isEmpty
+                            ? _emptyRoster(tk, ctrl)
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Expanded(
-                                    child: GhostButton(
-                                      '＋ ADD MANAGER',
-                                      height: 46,
-                                      onPressed:
-                                          cfg.participants.length >=
-                                              DraftConfigController.maxManagers
-                                          ? null
-                                          : ctrl.addManager,
+                                  for (final p in cfg.participants) ...[
+                                    ManagerTile(
+                                      key: ValueKey(p.id),
+                                      p: p,
+                                      mode: cfg.mode,
+                                      weightingEnabled: cfg.weightingEnabled,
                                     ),
+                                    const SizedBox(height: 10),
+                                  ],
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: GhostButton(
+                                          '＋ ADD MANAGER',
+                                          height: 46,
+                                          onPressed:
+                                              cfg.participants.length >=
+                                                  DraftConfigController
+                                                      .maxManagers
+                                              ? null
+                                              : ctrl.addManager,
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                  if (cfg.participants.length >=
+                                      DraftConfigController.maxManagers) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'League is full (16 max)',
+                                      textAlign: TextAlign.center,
+                                      style: tk.body.copyWith(
+                                        fontSize: 13,
+                                        color: tk.textMuted,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
-                              if (cfg.participants.length >=
-                                  DraftConfigController.maxManagers) ...[
+                      ),
+                      _panel(
+                        tk,
+                        title: 'ODDS',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (cfg.mode == DraftMode.bidding)
+                              Text(
+                                'Auction mode uses budgets instead of odds.',
+                                style: tk.body.copyWith(
+                                  fontSize: 13,
+                                  color: tk.textMuted,
+                                ),
+                              )
+                            else ...[
+                              _toggle(
+                                tk,
+                                '⚖ HANDICAP',
+                                cfg.weightingEnabled,
+                                (v) => ctrl.setWeightingEnabled(v),
+                              ),
+                              if (cfg.weightingEnabled) ...[
                                 const SizedBox(height: 8),
                                 Text(
-                                  'League is full (16 max)',
-                                  textAlign: TextAlign.center,
+                                  'Set each manager’s multiplier independently. Everyone stays at 1.0× unless you edit them; Draft Dash turns those multipliers into fair draw odds right before the reveal.',
                                   style: tk.body.copyWith(
-                                    fontSize: 13,
+                                    fontSize: 12.5,
                                     color: tk.textMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                _toggle(
+                                  tk,
+                                  '🔁 REVERSE (worst picks first)',
+                                  cfg.reverseOrder,
+                                  (v) => ctrl.setReverseOrder(v),
+                                  full: true,
+                                ),
+                                const SizedBox(height: 10),
+                                Center(
+                                  child: TextButton(
+                                    onPressed: ctrl.resetOdds,
+                                    child: Text(
+                                      'Reset odds to even',
+                                      style: tk.body.copyWith(
+                                        fontSize: 13,
+                                        color: tk.textMuted,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ],
-                          ),
-                  ),
-                  _panel(
-                    tk,
-                    title: 'ODDS',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (cfg.mode == DraftMode.bidding)
-                          Text(
-                            'Auction mode uses budgets instead of odds.',
-                            style: tk.body.copyWith(
-                              fontSize: 13,
-                              color: tk.textMuted,
-                            ),
-                          )
-                        else ...[
-                          _toggle(
-                            tk,
-                            '⚖ HANDICAP',
-                            cfg.weightingEnabled,
-                            (v) => ctrl.setWeightingEnabled(v),
-                          ),
-                          if (cfg.weightingEnabled) ...[
-                            const SizedBox(height: 8),
+                          ],
+                        ),
+                      ),
+                      _panel(
+                        tk,
+                        title: 'LOTTERY OPTIONS',
+                        child:
+                            cfg.mode == DraftMode.lottery &&
+                                cfg.participants.length >= 2
+                            ? _LotteryDepthControl(
+                                pickCount: cfg.effectiveLotteryPickCount,
+                                maxPickCount: cfg.participants.length - 1,
+                                onChanged: ctrl.setLotteryPickCount,
+                              )
+                            : Text(
+                                cfg.mode == DraftMode.lottery
+                                    ? 'Add at least 2 managers to adjust lottery depth.'
+                                    : 'Lottery depth applies when Lottery is selected.',
+                                style: tk.body.copyWith(
+                                  fontSize: 13,
+                                  color: tk.textMuted,
+                                ),
+                              ),
+                      ),
+                      _panel(
+                        tk,
+                        title: 'COMMISSIONER',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              'Set each manager’s multiplier independently. Everyone stays at 1.0× unless you edit them; Draft Dash turns those multipliers into fair draw odds right before the reveal.',
+                              'Lock exact picks before the draw starts.',
                               style: tk.body.copyWith(
-                                fontSize: 12.5,
+                                fontSize: 13,
                                 color: tk.textMuted,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            _toggle(
-                              tk,
-                              '🔁 REVERSE (worst picks first)',
-                              cfg.reverseOrder,
-                              (v) => ctrl.setReverseOrder(v),
-                              full: true,
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: GhostButton(
+                                pinned
+                                    ? '🔒 RIGGED (${cfg.pins.length})'
+                                    : '🔒 COMMISH',
+                                height: 46,
+                                textColor: tk.gold,
+                                onPressed: () => _openCommish(context),
+                              ),
                             ),
-                            const SizedBox(height: 10),
-                            Center(
-                              child: TextButton(
-                                onPressed: ctrl.resetOdds,
-                                child: Text(
-                                  'Reset odds to even',
-                                  style: tk.body.copyWith(
-                                    fontSize: 13,
-                                    color: tk.textMuted,
-                                  ),
+                          ],
+                        ),
+                      ),
+                      _panel(
+                        tk,
+                        title: 'LEAGUE LEDGER',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Record penalties, boosts, locks, and notes.',
+                              style: tk.body.copyWith(
+                                fontSize: 13,
+                                color: tk.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            GhostButton(
+                              '📒 LEAGUE LEDGER (${cfg.ledgerEntries.length})',
+                              height: 46,
+                              textColor: cfg.ledgerEntries.isEmpty
+                                  ? null
+                                  : tk.gold,
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const LeagueLedgerScreen(),
                                 ),
                               ),
                             ),
                           ],
-                        ],
-                      ],
-                    ),
-                  ),
-                  _panel(
-                    tk,
-                    title: 'LOTTERY OPTIONS',
-                    child:
-                        cfg.mode == DraftMode.lottery &&
-                            cfg.participants.length >= 2
-                        ? _LotteryDepthControl(
-                            pickCount: cfg.effectiveLotteryPickCount,
-                            maxPickCount: cfg.participants.length - 1,
-                            onChanged: ctrl.setLotteryPickCount,
-                          )
-                        : Text(
-                            cfg.mode == DraftMode.lottery
-                                ? 'Add at least 2 managers to adjust lottery depth.'
-                                : 'Lottery depth applies when Lottery is selected.',
-                            style: tk.body.copyWith(
-                              fontSize: 13,
-                              color: tk.textMuted,
-                            ),
-                          ),
-                  ),
-                  _panel(
-                    tk,
-                    title: 'COMMISSIONER',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Lock exact picks before the draw starts.',
-                          style: tk.body.copyWith(
-                            fontSize: 13,
-                            color: tk.textMuted,
-                          ),
                         ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: GhostButton(
-                            pinned
-                                ? '🔒 RIGGED (${cfg.pins.length})'
-                                : '🔒 COMMISH',
-                            height: 46,
-                            textColor: tk.gold,
-                            onPressed: () => _openCommish(context),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  _panel(
-                    tk,
-                    title: 'LEAGUE LEDGER',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Record penalties, boosts, locks, and notes.',
-                          style: tk.body.copyWith(
-                            fontSize: 13,
-                            color: tk.textMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        GhostButton(
-                          '📒 LEAGUE LEDGER (${cfg.ledgerEntries.length})',
-                          height: 46,
-                          textColor: cfg.ledgerEntries.isEmpty ? null : tk.gold,
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const LeagueLedgerScreen(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
 
-            // sticky CTA
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: PrimaryButton(_ctaLabel, onPressed: _start),
+                // sticky CTA
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: PrimaryButton(_ctaLabel, onPressed: _start),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
