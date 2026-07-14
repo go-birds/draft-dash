@@ -11,12 +11,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
   flutter_riverpod: ^3.3.1
   sentry_flutter: ^9.0.0
   shared_preferences: ^2.5.5
   audioplayers: ^6.1.0
+  file_selector: ^1.1.0
+  share_plus: ^13.2.0
+  url_launcher: ^6.3.2
   progenitor_core:
-    path: ../progenitor/packages/progenitor_core
+    git:
+      url: https://github.com/go-birds/progenitor.git
+      ref: 3b2dfec40566567eee613495929efd01ed875776
+      path: packages/progenitor_core
 
 dev_dependencies:
   flutter_test:

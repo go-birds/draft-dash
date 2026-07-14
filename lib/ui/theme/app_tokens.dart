@@ -1,9 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:progenitor_core/progenitor_core.dart';
 
+enum SportPresentation { football, basketball }
+
 /// Stadium-realism design tokens. Extends the Progenitor base with football
 /// field + scoreboard colors and a jersey palette for auto-assigning managers.
 class DraftTokens extends AppTokens {
+  final SportPresentation sport;
   // ─── field ───────────────────────────────────────────────────────────
   final Color turf;
   final Color turfDark;
@@ -23,6 +26,7 @@ class DraftTokens extends AppTokens {
   final List<Color> jerseys;
 
   const DraftTokens({
+    this.sport = SportPresentation.football,
     required this.turf,
     required this.turfDark,
     required this.yardLine,

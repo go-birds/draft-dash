@@ -8,18 +8,16 @@ import '../theme/color_utils.dart';
 /// One runner's live state for the race painter.
 class RaceRunner {
   final Color color;
-  final String number;
+  final String initials;
   final double progress; // 0..1 from goal line to far end zone
   final double stride; // running-leg phase
-  final bool leader;
   final bool winner;
 
   const RaceRunner({
     required this.color,
-    required this.number,
+    required this.initials,
     required this.progress,
     required this.stride,
-    required this.leader,
     this.winner = false,
   });
 }
@@ -51,50 +49,60 @@ class FieldRacePainter extends CustomPainter {
     final cameraStart = (leaderProgress * finishYard - 20).clamp(-10.0, 70.0);
     double xForYard(double yard) => ((yard - cameraStart) / visibleYards) * w;
     final intro = Curves.easeOutCubic.transform(introProgress.clamp(0.0, 1.0));
-    final finishPulse = finished
-        ? 1.0
-        : ((leaderProgress - 0.92) / 0.08).clamp(0.0, 1.0);
+    // Keep every glow/burst hidden until the result is actually finished.
+    // Pre-finish effects can reveal which runner is destined to win.
+    final finishPulse = finished ? 1.0 : 0.0;
 
-    // mowed stripes every five yards across the 40-yard camera window.
-    for (var yard = cameraStart.floor() - 5; yard <= cameraStart + 45; yard++) {
-      if (yard % 5 != 0) continue;
-      final x0 = xForYard(yard.toDouble());
-      final x1 = xForYard(yard + 5);
-      final stripeIndex = (yard ~/ 5).abs();
-      canvas.drawRect(
-        Rect.fromLTRB(x0, 0, x1 + 1, h),
-        Paint()..color = stripeIndex.isEven ? tk.turf : tk.turfDark,
-      );
+    if (tk.sport == SportPresentation.basketball) {
+      _drawBasketballCourt(canvas, size, cameraStart, xForYard);
+    } else {
+      // Mowed stripes every five yards across the 40-yard camera window.
+      for (
+        var yard = cameraStart.floor() - 5;
+        yard <= cameraStart + 45;
+        yard++
+      ) {
+        if (yard % 5 != 0) continue;
+        final x0 = xForYard(yard.toDouble());
+        final x1 = xForYard(yard + 5);
+        final stripeIndex = (yard ~/ 5).abs();
+        canvas.drawRect(
+          Rect.fromLTRB(x0, 0, x1 + 1, h),
+          Paint()..color = stripeIndex.isEven ? tk.turf : tk.turfDark,
+        );
+      }
+
+      // End zones just outside the 100-yard field.
+      _drawEndZone(canvas, Rect.fromLTRB(xForYard(-10), 0, xForYard(0), h));
+      _drawEndZone(canvas, Rect.fromLTRB(xForYard(100), 0, xForYard(110), h));
     }
-
-    // End zones just outside the 100-yard field.
-    _drawEndZone(canvas, Rect.fromLTRB(xForYard(-10), 0, xForYard(0), h));
-    _drawEndZone(canvas, Rect.fromLTRB(xForYard(100), 0, xForYard(110), h));
 
     if (!racing) {
       _drawIntroLane(canvas, Rect.fromLTRB(0, 0, xForYard(14), h), intro);
     }
 
-    // yard lines + hash marks + numbers
-    final majorLine = Paint()
-      ..color = tk.yardLine.withValues(alpha: .62)
-      ..strokeWidth = 2;
-    final minorLine = Paint()
-      ..color = tk.yardLine.withValues(alpha: .28)
-      ..strokeWidth = 1;
-    for (var yard = 0; yard <= 100; yard += 5) {
-      final x = xForYard(yard.toDouble());
-      if (x < -30 || x > w + 30) continue;
-      final major = yard % 10 == 0;
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, h),
-        major ? majorLine : minorLine,
-      );
-      _hashMarks(canvas, x, h);
-      if (major && yard > 0 && yard < 100) {
-        _yardNumber(canvas, _yardLabel(yard), x, h * .23);
-        _yardNumber(canvas, _yardLabel(yard), x, h * .77, flipped: true);
+    if (tk.sport == SportPresentation.football) {
+      // Yard lines, hash marks, and numbers belong only on the gridiron.
+      final majorLine = Paint()
+        ..color = tk.yardLine.withValues(alpha: .62)
+        ..strokeWidth = 2;
+      final minorLine = Paint()
+        ..color = tk.yardLine.withValues(alpha: .28)
+        ..strokeWidth = 1;
+      for (var yard = 0; yard <= 100; yard += 5) {
+        final x = xForYard(yard.toDouble());
+        if (x < -30 || x > w + 30) continue;
+        final major = yard % 10 == 0;
+        canvas.drawLine(
+          Offset(x, 0),
+          Offset(x, h),
+          major ? majorLine : minorLine,
+        );
+        _hashMarks(canvas, x, h);
+        if (major && yard > 0 && yard < 100) {
+          _yardNumber(canvas, _yardLabel(yard), x, h * .23);
+          _yardNumber(canvas, _yardLabel(yard), x, h * .77, flipped: true);
+        }
       }
     }
 
@@ -109,9 +117,13 @@ class FieldRacePainter extends CustomPainter {
         ).createShader(Offset.zero & size),
     );
 
-    // end-zone labels
-    _endZoneLabel(canvas, xForYard(-5), h);
-    _endZoneLabel(canvas, xForYard(105), h);
+    if (tk.sport == SportPresentation.football) {
+      _endZoneLabel(canvas, xForYard(-5), h);
+      _endZoneLabel(canvas, xForYard(105), h);
+    } else {
+      _baselineLabel(canvas, xForYard(-5), h);
+      _baselineLabel(canvas, xForYard(105), h);
+    }
 
     // runners
     final n = runners.length;
@@ -216,7 +228,83 @@ class FieldRacePainter extends CustomPainter {
     }
   }
 
+  void _drawBasketballCourt(
+    Canvas canvas,
+    Size size,
+    double cameraStart,
+    double Function(double) xForYard,
+  ) {
+    canvas.drawRect(Offset.zero & size, Paint()..color = tk.turf);
+
+    // Long hardwood boards, with alternating warm tones and fine seams.
+    const boardHeight = 34.0;
+    for (var y = 0.0; y < size.height; y += boardHeight) {
+      canvas.drawRect(
+        Rect.fromLTWH(0, y, size.width, boardHeight),
+        Paint()
+          ..color = ((y / boardHeight).round()).isEven ? tk.turf : tk.turfDark,
+      );
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        Paint()
+          ..color = tk.yardLine.withValues(alpha: .14)
+          ..strokeWidth = 1,
+      );
+    }
+    for (
+      var yard = cameraStart.floor() - 5;
+      yard <= cameraStart + 45;
+      yard += 4
+    ) {
+      final x = xForYard(yard.toDouble());
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        Paint()
+          ..color = tk.yardLine.withValues(alpha: .10)
+          ..strokeWidth = 1,
+      );
+    }
+
+    final courtLine = Paint()
+      ..color = tk.yardLine.withValues(alpha: .78)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    final centerX = xForYard(50);
+    canvas.drawLine(
+      Offset(centerX, 0),
+      Offset(centerX, size.height),
+      courtLine,
+    );
+    canvas.drawCircle(Offset(centerX, size.height / 2), 66, courtLine);
+
+    for (final baseline in [0.0, 100.0]) {
+      final x = xForYard(baseline);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), courtLine);
+      final facingRight = baseline == 0;
+      final laneRect = Rect.fromCenter(
+        center: Offset(x + (facingRight ? 54 : -54), size.height / 2),
+        width: 108,
+        height: min(230, size.height * .52),
+      );
+      canvas.drawRect(laneRect, courtLine);
+      canvas.drawCircle(
+        Offset(
+          laneRect.center.dx + (facingRight ? 54 : -54),
+          laneRect.center.dy,
+        ),
+        54,
+        courtLine,
+      );
+    }
+  }
+
   void _drawRunner(Canvas c, Offset center, double s, RaceRunner r) {
+    if (tk.sport == SportPresentation.basketball) {
+      _drawBasketballRunner(c, center, s, r);
+      return;
+    }
     final color = r.color;
     final skin = const Color(0xFFE7B58A);
     final stride = sin(r.stride);
@@ -234,8 +322,8 @@ class FieldRacePainter extends CustomPainter {
       Paint()..color = Colors.black.withValues(alpha: .28),
     );
 
-    // speed lines for the leader
-    if (r.leader) {
+    // The three-line burst is a finish effect, never an early winner tell.
+    if (r.winner) {
       final lp = Paint()
         ..color = Colors.white.withValues(alpha: .45)
         ..strokeWidth = 2;
@@ -298,7 +386,7 @@ class FieldRacePainter extends CustomPainter {
     // number
     _text(
       c,
-      r.number,
+      r.initials,
       Offset(center.dx, (hipY + shoulderY) / 2),
       s * 0.30,
       onColor(color),
@@ -373,6 +461,115 @@ class FieldRacePainter extends CustomPainter {
 
     if (r.winner) {
       _drawFirstPickBadge(c, center.translate(s * 0.08, -s * 0.62), s);
+    }
+  }
+
+  void _drawBasketballRunner(Canvas c, Offset center, double s, RaceRunner r) {
+    final color = r.color;
+    const skin = Color(0xFFE7B58A);
+    final stride = sin(r.stride);
+    final bob = sin(r.stride * 2) * s * .025;
+    center = center.translate(0, bob);
+
+    c.drawOval(
+      Rect.fromCenter(
+        center: center.translate(0, s * .45),
+        width: s * .72,
+        height: s * .15,
+      ),
+      Paint()..color = Colors.black.withValues(alpha: .22),
+    );
+
+    if (r.winner) {
+      final burst = Paint()
+        ..color = Colors.white.withValues(alpha: .62)
+        ..strokeWidth = 2;
+      for (var k = 0; k < 3; k++) {
+        final y = center.dy - s * .1 + k * s * .12;
+        c.drawLine(
+          Offset(center.dx - s * .55, y),
+          Offset(center.dx - s * .9, y),
+          burst,
+        );
+      }
+    }
+
+    final hip = Offset(center.dx, center.dy + s * .1);
+    final shoulder = Offset(center.dx, center.dy - s * .18);
+    final limb = Paint()
+      ..color = skin
+      ..strokeWidth = s * .1
+      ..strokeCap = StrokeCap.round;
+    final shoe = Paint()
+      ..color = const Color(0xFFF8F8FA)
+      ..strokeWidth = s * .08
+      ..strokeCap = StrokeCap.round;
+    final leftFoot = Offset(
+      center.dx - s * .2 - stride * s * .2,
+      center.dy + s * .43,
+    );
+    final rightFoot = Offset(
+      center.dx + s * .2 + stride * s * .2,
+      center.dy + s * .43,
+    );
+    c.drawLine(hip, leftFoot, limb);
+    c.drawLine(hip, rightFoot, limb);
+    c.drawLine(leftFoot, leftFoot.translate(-s * .12, 0), shoe);
+    c.drawLine(rightFoot, rightFoot.translate(s * .12, 0), shoe);
+
+    final jersey = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(center.dx, (hip.dy + shoulder.dy) / 2),
+        width: s * .43,
+        height: hip.dy - shoulder.dy + s * .12,
+      ),
+      Radius.circular(s * .06),
+    );
+    c.drawRRect(jersey, Paint()..color = color);
+    _text(c, r.initials, jersey.center, s * .27, onColor(color), bold: true);
+
+    c.drawLine(
+      shoulder.translate(-s * .08, s * .05),
+      shoulder.translate(-s * .3, -stride * s * .16),
+      limb,
+    );
+    final ballCenter = shoulder.translate(s * .38, s * .04 + stride * s * .08);
+    c.drawLine(shoulder.translate(s * .08, s * .05), ballCenter, limb);
+    final ballPaint = Paint()..color = const Color(0xFFE36B25);
+    c.drawCircle(ballCenter, s * .14, ballPaint);
+    final seam = Paint()
+      ..color = const Color(0xFF4A2415)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = max(1, s * .015);
+    c.drawCircle(ballCenter, s * .14, seam);
+    c.drawLine(
+      ballCenter.translate(-s * .14, 0),
+      ballCenter.translate(s * .14, 0),
+      seam,
+    );
+    c.drawArc(
+      Rect.fromCircle(center: ballCenter, radius: s * .14),
+      -pi / 2,
+      pi,
+      false,
+      seam,
+    );
+
+    final head = shoulder.translate(0, -s * .17);
+    c.drawCircle(head, s * .14, Paint()..color = skin);
+    c.drawArc(
+      Rect.fromCircle(center: head, radius: s * .145),
+      pi,
+      pi,
+      false,
+      Paint()
+        ..color = const Color(0xFF282018)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * .07,
+    );
+
+    if (r.winner) {
+      _drawFirstPickBadge(c, center.translate(s * .08, -s * .62), s);
     }
   }
 
@@ -453,6 +650,22 @@ class FieldRacePainter extends CustomPainter {
       Colors.white.withValues(alpha: .85),
       bold: true,
       spacing: 6,
+    );
+    c.restore();
+  }
+
+  void _baselineLabel(Canvas c, double cx, double h) {
+    c.save();
+    c.translate(cx, h / 2);
+    c.rotate(pi / 2);
+    _text(
+      c,
+      'DRAFT DASH',
+      Offset.zero,
+      22,
+      Colors.white.withValues(alpha: .9),
+      bold: true,
+      spacing: 4,
     );
     c.restore();
   }

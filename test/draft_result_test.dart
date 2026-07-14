@@ -5,6 +5,25 @@ import 'package:draft_race/domain/draft/participant.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('single-word names use one-letter initials', () {
+    expect(Participant.initialsForName('Nick'), 'N');
+  });
+
+  test('Participant round-trips initials and optional email', () {
+    const participant = Participant(
+      id: 'p-email',
+      name: 'Nick Coleman',
+      initials: 'NC',
+      email: 'nick@example.com',
+      colorValue: 0xFF3A86FF,
+    );
+
+    final decoded = Participant.fromJson(participant.toJson());
+    expect(decoded.initials, 'NC');
+    expect(decoded.email, 'nick@example.com');
+    expect(decoded, participant);
+  });
+
   group('Participant taunt serialization', () {
     test('round-trips a non-null taunt through json', () {
       const p = Participant(
@@ -49,8 +68,10 @@ void main() {
       );
 
       expect(p.copyWith(name: 'Nicky').taunt, 'Scoreboard.');
-      expect(p.copyWith(taunt: 'Dynasty starts now.').taunt,
-          'Dynasty starts now.');
+      expect(
+        p.copyWith(taunt: 'Dynasty starts now.').taunt,
+        'Dynasty starts now.',
+      );
       expect(p.copyWith(taunt: null).taunt, isNull);
     });
   });
@@ -175,6 +196,71 @@ void main() {
       expect(base.proofCode, saved.proofCode);
       expect(base.proofCode, isNot(reordered.proofCode));
       expect(base.proofCode, matches(RegExp(r'^DD-[0-9A-Z]{3}-[0-9A-Z]{4}$')));
+    });
+
+    test('proof code commits to commissioner edit history', () {
+      final executedAt = DateTime.utc(2026, 6, 7, 20);
+      final baseMetadata = DraftProofMetadata.fromConfig(
+        const DraftConfig(
+          participants: [
+            Participant(
+              id: 'p1',
+              name: 'Nick',
+              number: '07',
+              colorValue: 0xFF3A86FF,
+            ),
+            Participant(
+              id: 'p2',
+              name: 'Jordan',
+              number: '23',
+              colorValue: 0xFFE63946,
+            ),
+          ],
+        ),
+        executedAt: executedAt,
+        seed: 12,
+      );
+      final edit = DraftOrderEdit(
+        editedAt: DateTime.utc(2026, 6, 7, 20, 5),
+        previousOrder: const ['p1', 'p2'],
+        updatedOrder: const ['p2', 'p1'],
+      );
+      final edited = DraftResult(
+        order: const ['p2', 'p1'],
+        seed: 12,
+        mode: DraftMode.race,
+        createdAt: executedAt,
+        proofMetadata: baseMetadata.copyWith(orderEdits: [edit]),
+      );
+      final silentlyReplaced = DraftResult(
+        order: const ['p2', 'p1'],
+        seed: 12,
+        mode: DraftMode.race,
+        createdAt: executedAt,
+        proofMetadata: baseMetadata,
+      );
+
+      expect(edited.proofCode, isNot(silentlyReplaced.proofCode));
+
+      final decoded = DraftResult.fromJson(edited.toJson());
+      expect(decoded.proofCode, edited.proofCode);
+      expect(decoded.proofMetadata!.orderEdits, hasLength(1));
+      expect(decoded.proofMetadata!.orderEdits.single.previousOrder, [
+        'p1',
+        'p2',
+      ]);
+      expect(decoded.proofMetadata!.orderEdits.single.updatedOrder, [
+        'p2',
+        'p1',
+      ]);
+      expect(
+        () => decoded.proofMetadata!.orderEdits.single.updatedOrder.add('p3'),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => decoded.proofMetadata!.orderEdits.add(edit),
+        throwsUnsupportedError,
+      );
     });
   });
 }

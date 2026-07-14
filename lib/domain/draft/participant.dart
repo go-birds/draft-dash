@@ -6,8 +6,11 @@ class Participant {
   final String id;
   final String name;
 
-  /// Jersey number shown on the chip/sprite, e.g. "07".
-  final String number;
+  /// Editable letters shown in the manager avatar.
+  final String initials;
+
+  /// Optional address that receives the draft results.
+  final String? email;
 
   /// 32-bit ARGB color for this manager's jersey/chip.
   final int colorValue;
@@ -25,12 +28,28 @@ class Participant {
   const Participant({
     required this.id,
     required this.name,
-    required this.number,
+    String? initials,
+    @Deprecated('Use initials') String? number,
     required this.colorValue,
+    this.email,
     this.weight = 1.0,
     this.budget = 100,
     this.taunt,
-  });
+  }) : assert(initials != null || number != null),
+       initials = initials ?? number ?? '';
+
+  static String initialsForName(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      return parts.single[0].toUpperCase();
+    }
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
 
   /// Sentinel so [copyWith] can distinguish "leave taunt alone" from
   /// "clear taunt to null".
@@ -39,7 +58,8 @@ class Participant {
   Participant copyWith({
     String? id,
     String? name,
-    String? number,
+    String? initials,
+    Object? email = _unsetTaunt,
     int? colorValue,
     double? weight,
     int? budget,
@@ -48,7 +68,8 @@ class Participant {
     return Participant(
       id: id ?? this.id,
       name: name ?? this.name,
-      number: number ?? this.number,
+      initials: initials ?? this.initials,
+      email: identical(email, _unsetTaunt) ? this.email : email as String?,
       colorValue: colorValue ?? this.colorValue,
       weight: weight ?? this.weight,
       budget: budget ?? this.budget,
@@ -59,7 +80,8 @@ class Participant {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
-    'number': number,
+    'initials': initials,
+    if (email != null) 'email': email,
     'color': colorValue,
     'weight': weight,
     'budget': budget,
@@ -69,7 +91,8 @@ class Participant {
   static Participant fromJson(Map<String, dynamic> j) => Participant(
     id: j['id'] as String,
     name: j['name'] as String,
-    number: (j['number'] ?? '') as String,
+    initials: j['initials'] as String,
+    email: j['email'] as String?,
     colorValue: (j['color'] as num).toInt(),
     weight: (j['weight'] as num?)?.toDouble() ?? 1.0,
     budget: (j['budget'] as num?)?.toInt() ?? 100,
@@ -81,7 +104,8 @@ class Participant {
       other is Participant &&
       other.id == id &&
       other.name == name &&
-      other.number == number &&
+      other.initials == initials &&
+      other.email == email &&
       other.colorValue == colorValue &&
       other.weight == weight &&
       other.budget == budget &&
@@ -89,5 +113,5 @@ class Participant {
 
   @override
   int get hashCode =>
-      Object.hash(id, name, number, colorValue, weight, budget, taunt);
+      Object.hash(id, name, initials, email, colorValue, weight, budget, taunt);
 }

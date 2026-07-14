@@ -170,7 +170,11 @@ class _BidderRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            JerseyChip(color: Color(p.colorValue), number: p.number, size: 44),
+            JerseyChip(
+              color: Color(p.colorValue),
+              number: p.initials,
+              size: 44,
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -259,7 +263,7 @@ class _BidSheetState extends State<_BidSheet> {
               const SizedBox(height: 16),
               JerseyChip(
                 color: Color(widget.p.colorValue),
-                number: widget.p.number,
+                number: widget.p.initials,
                 size: 56,
               ),
               const SizedBox(height: 8),
@@ -392,7 +396,7 @@ class _RevealView extends ConsumerWidget {
                 children: [
                   JerseyChip(
                     color: Color(winner.colorValue),
-                    number: winner.number,
+                    number: winner.initials,
                     size: 54,
                     highlight: true,
                   ),
@@ -486,7 +490,7 @@ class _RevealView extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          JerseyChip(color: Color(p.colorValue), number: p.number, size: 40),
+          JerseyChip(color: Color(p.colorValue), number: p.initials, size: 40),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

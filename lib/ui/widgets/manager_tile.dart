@@ -41,7 +41,7 @@ class ManagerTile extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          JerseyChip(color: color, number: p.number, size: 46),
+          JerseyChip(color: color, number: p.initials, size: 46),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -64,6 +64,14 @@ class ManagerTile extends ConsumerWidget {
                     ],
                   ),
                 ),
+                if (p.email != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    p.email!,
+                    overflow: TextOverflow.ellipsis,
+                    style: tk.body.copyWith(fontSize: 11, color: tk.textMuted),
+                  ),
+                ],
                 const SizedBox(height: 4),
                 if (isBidding)
                   _budgetRow(context, ctrl, tk)
@@ -138,22 +146,44 @@ class ManagerTile extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 4,
-            activeTrackColor: _oddsColor(tk),
-            inactiveTrackColor: tk.surfaceElevated,
-            thumbColor: Colors.white,
-            overlayShape: SliderComponentShape.noOverlay,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-          ),
-          child: Slider(
-            value: p.weight.clamp(0.2, 5.0),
-            min: 0.2,
-            max: 5.0,
-            onChanged: (v) =>
-                ctrl.setWeight(p.id, double.parse(v.toStringAsFixed(1))),
-          ),
+        Row(
+          children: [
+            _StepButton(
+              icon: Icons.remove,
+              tooltip: 'Decrease ${p.name} odds',
+              onTap: () => ctrl.setWeight(
+                p.id,
+                double.parse((p.weight - 0.1).toStringAsFixed(1)),
+              ),
+            ),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 4,
+                  activeTrackColor: _oddsColor(tk),
+                  inactiveTrackColor: tk.surfaceElevated,
+                  thumbColor: Colors.white,
+                  overlayShape: SliderComponentShape.noOverlay,
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 8,
+                  ),
+                ),
+                child: Slider(
+                  key: ValueKey('weight-slider-${p.id}'),
+                  value: _weightToSlider(p.weight),
+                  onChanged: (v) => ctrl.setWeight(p.id, _sliderToWeight(v)),
+                ),
+              ),
+            ),
+            _StepButton(
+              icon: Icons.add,
+              tooltip: 'Increase ${p.name} odds',
+              onTap: () => ctrl.setWeight(
+                p.id,
+                double.parse((p.weight + 0.1).toStringAsFixed(1)),
+              ),
+            ),
+          ],
         ),
         Padding(
           padding: const EdgeInsets.only(left: 6),
@@ -205,7 +235,8 @@ class ManagerTile extends ConsumerWidget {
     DraftConfigController ctrl,
   ) {
     final nameController = TextEditingController(text: p.name);
-    final numberController = TextEditingController(text: p.number);
+    final initialsController = TextEditingController(text: p.initials);
+    final emailController = TextEditingController(text: p.email ?? '');
     final tauntController = TextEditingController(text: p.taunt ?? '');
     String? nameError;
     showDialog<void>(
@@ -232,9 +263,17 @@ class ManagerTile extends ConsumerWidget {
                 setState(() => nameError = 'Name already taken');
                 return;
               }
-              final digits = _jerseyDigits(numberController.text);
-              final number = digits.isEmpty ? p.number : digits.padLeft(2, '0');
-              ctrl.updateManager(p.copyWith(name: name, number: number));
+              final initials = _initials(initialsController.text);
+              final email = emailController.text.trim();
+              ctrl.updateManager(
+                p.copyWith(
+                  name: name,
+                  initials: initials.isEmpty
+                      ? Participant.initialsForName(name)
+                      : initials,
+                  email: email.isEmpty ? null : email,
+                ),
+              );
               ctrl.setTaunt(p.id, tauntController.text);
               Navigator.pop(ctx);
             }
@@ -263,11 +302,25 @@ class ManagerTile extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    controller: numberController,
+                    controller: initialsController,
                     style: tk.body,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [_JerseyNumberFormatter()],
-                    decoration: const InputDecoration(hintText: 'Jersey #'),
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: [_InitialsFormatter()],
+                    decoration: const InputDecoration(
+                      labelText: 'Avatar letters',
+                      hintText: 'Initials',
+                    ),
+                    onSubmitted: (_) => save(),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    style: tk.body,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email (optional)',
+                      hintText: 'Send results to this address',
+                    ),
                     onSubmitted: (_) => save(),
                   ),
                   const SizedBox(height: 12),
@@ -298,21 +351,34 @@ class ManagerTile extends ConsumerWidget {
   }
 }
 
-String _jerseyDigits(String value) {
-  final digits = value.replaceAll(RegExp(r'\D'), '');
-  return digits.length <= 2 ? digits : digits.substring(0, 2);
+double _weightToSlider(double weight) {
+  final value = weight.clamp(0.2, 5.0);
+  if (value <= 1) return ((value - 0.2) / 0.8) * 0.5;
+  return 0.5 + ((value - 1) / 4) * 0.5;
 }
 
-class _JerseyNumberFormatter extends TextInputFormatter {
+double _sliderToWeight(double value) {
+  final weight = value <= 0.5
+      ? 0.2 + (value / 0.5) * 0.8
+      : 1 + ((value - 0.5) / 0.5) * 4;
+  return double.parse(weight.toStringAsFixed(1));
+}
+
+String _initials(String value) {
+  final letters = value.toUpperCase().replaceAll(RegExp('[^A-Z]'), '');
+  return letters.length <= 3 ? letters : letters.substring(0, 3);
+}
+
+class _InitialsFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final digits = _jerseyDigits(newValue.text);
+    final letters = _initials(newValue.text);
     return TextEditingValue(
-      text: digits,
-      selection: TextSelection.collapsed(offset: digits.length),
+      text: letters,
+      selection: TextSelection.collapsed(offset: letters.length),
     );
   }
 }
@@ -320,12 +386,13 @@ class _JerseyNumberFormatter extends TextInputFormatter {
 class _StepButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _StepButton({required this.icon, required this.onTap});
+  final String? tooltip;
+  const _StepButton({required this.icon, required this.onTap, this.tooltip});
 
   @override
   Widget build(BuildContext context) {
     final tk = context.tokens;
-    return InkWell(
+    final button = InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -338,5 +405,6 @@ class _StepButton extends StatelessWidget {
         child: Icon(icon, size: 16, color: tk.textPrimary),
       ),
     );
+    return tooltip == null ? button : Tooltip(message: tooltip!, child: button);
   }
 }

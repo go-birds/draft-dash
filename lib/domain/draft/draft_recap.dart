@@ -73,7 +73,7 @@ class DraftRecap {
       lines.add('Draft board:');
       for (var i = 0; i < ordered.length; i++) {
         final manager = ordered[i];
-        lines.add('${i + 1}. ${manager.name} (#${manager.number})');
+        lines.add('${i + 1}. ${manager.name} (${manager.initials})');
       }
     }
 
@@ -121,8 +121,9 @@ class DraftRecap {
     );
     lines.add('Commissioner pins: $pinSummary');
     lines.add('League Ledger: $ledgerSummary');
+    lines.addAll(_orderEditLines(proofMetadata));
     lines.add(
-      'Manager settings: ${[for (final p in settings.participants) '${p.name} (#${p.number}, weight ${p.weight.toStringAsFixed(2)}, budget ${p.budget})'].join('; ')}',
+      'Manager settings: ${[for (final p in settings.participants) '${p.name} (${p.initials}, weight ${p.weight.toStringAsFixed(2)}, budget ${p.budget})'].join('; ')}',
     );
     return lines;
   }
@@ -140,7 +141,7 @@ class DraftRecap {
           ].join(', ');
     final managerSummary = [
       for (final p in settings.participants)
-        '${p.name} (#${p.number}, weight ${p.weight.toStringAsFixed(2)}, '
+        '${p.name} (${p.initials}, weight ${p.weight.toStringAsFixed(2)}, '
             'budget ${p.budget})',
     ].join('; ');
     final ledgerSummary = settings.ledgerEntries.isEmpty
@@ -158,7 +159,32 @@ class DraftRecap {
           'lottery picks ${settings.effectiveLotteryPickCount}',
       'Commissioner pins: $pinSummary',
       'League Ledger: $ledgerSummary',
+      ..._orderEditLines(metadata),
       'Manager settings: $managerSummary',
     ];
   }
+
+  static List<String> _orderEditLines(DraftProofMetadata metadata) {
+    if (metadata.orderEdits.isEmpty) {
+      return const ['Commissioner edits: none'];
+    }
+    final managersById = {
+      for (final p in metadata.settings.participants) p.id: p,
+    };
+    return [
+      'Commissioner edits: ${metadata.orderEdits.length}',
+      for (var i = 0; i < metadata.orderEdits.length; i++)
+        'Edit ${i + 1} at ${metadata.orderEdits[i].editedAt.toUtc().toIso8601String()}: '
+            '${_namedOrder(metadata.orderEdits[i].previousOrder, managersById)} → '
+            '${_namedOrder(metadata.orderEdits[i].updatedOrder, managersById)}',
+    ];
+  }
+
+  static String _namedOrder(
+    List<String> order,
+    Map<String, Participant> managersById,
+  ) => [
+    for (var i = 0; i < order.length; i++)
+      '${i + 1}. ${managersById[order[i]]?.name ?? order[i]}',
+  ].join(', ');
 }

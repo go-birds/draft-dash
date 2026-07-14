@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/draft/participant.dart';
+import '../../domain/draft/race_speed.dart';
 import '../../domain/draft/taunts.dart';
 import '../../services/feedback.dart';
 import '../state/providers.dart';
@@ -30,6 +31,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
   late final int _n;
   late final String? _winnerId;
   late final int _seed;
+  late final RaceSpeed _speed;
 
   int _countdown = 3; // 3,2,1,0(GO)
   bool _racing = false;
@@ -53,6 +55,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     final order = result?.order ?? [for (final p in _lineup) p.id];
     _winnerId = order.isEmpty ? null : order.first;
     _seed = result?.seed ?? 0;
+    _speed = ref.read(settingsProvider).raceSpeed;
     final rand = Random(result?.seed ?? 1);
     double prev = 0;
     for (var r = 0; r < order.length; r++) {
@@ -66,13 +69,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
     }
     if (order.isNotEmpty) _finish[order.last] = 1.0;
 
-    _race =
-        AnimationController(
-          vsync: this,
-          duration: Duration(milliseconds: 6400 + _n * 240),
-        )..addStatusListener((s) {
-          if (s == AnimationStatus.completed) _onFinish();
-        });
+    _race = AnimationController(vsync: this, duration: _speed.duration)
+      ..addStatusListener((s) {
+        if (s == AnimationStatus.completed) _onFinish();
+      });
     _intro = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -154,10 +154,9 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
                 for (var i = 0; i < _n; i++)
                   RaceRunner(
                     color: Color(_lineup[i].colorValue),
-                    number: _lineup[i].number,
+                    initials: _lineup[i].initials,
                     progress: prog[_lineup[i].id]!,
                     stride: _racing ? t * 34 + i * .8 : 0,
-                    leader: _racing && prog[_lineup[i].id]! == leaderProgress,
                     winner: _finished && _lineup[i].id == _winnerId,
                   ),
               ];
@@ -197,7 +196,11 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
                     left: edgeInset,
                     top: edgeInset,
                     width: scoreboardWidth,
-                    child: _Scoreboard(leader: leader, t: t),
+                    child: _Scoreboard(
+                      leader: leader,
+                      t: t,
+                      raceDuration: _speed.duration,
+                    ),
                   ),
                   Positioned(
                     right: edgeInset,
@@ -229,12 +232,19 @@ class _RaceScreenState extends ConsumerState<RaceScreen>
 class _Scoreboard extends StatelessWidget {
   final Participant leader;
   final double t;
-  const _Scoreboard({required this.leader, required this.t});
+  final Duration raceDuration;
+  const _Scoreboard({
+    required this.leader,
+    required this.t,
+    required this.raceDuration,
+  });
 
   @override
   Widget build(BuildContext context) {
     final tk = context.tokens;
-    final secs = (t * 6).toStringAsFixed(1);
+    final elapsedSeconds = t * raceDuration.inMilliseconds / 1000;
+    final minutes = elapsedSeconds ~/ 60;
+    final secs = (elapsedSeconds % 60).toStringAsFixed(1).padLeft(4, '0');
     return SafeArea(
       bottom: false,
       child: Container(
@@ -267,7 +277,7 @@ class _Scoreboard extends StatelessWidget {
                     style: tk.label.copyWith(fontSize: 10, color: tk.textMuted),
                   ),
                   Text(
-                    '${leader.name.toUpperCase()} · #${leader.number}',
+                    '${leader.name.toUpperCase()} · ${leader.initials}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: tk.displayLarge.copyWith(
@@ -282,7 +292,7 @@ class _Scoreboard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '0:${secs.padLeft(4, '0')}',
+                  '$minutes:$secs',
                   style: tk.displayLarge.copyWith(fontSize: 20),
                 ),
                 Text(

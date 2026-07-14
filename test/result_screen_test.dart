@@ -7,6 +7,7 @@ import 'package:draft_race/ui/state/providers.dart';
 import 'package:draft_race/ui/theme/app_tokens.dart';
 import 'package:draft_race/ui/theme/themes.dart';
 import 'package:draft_race/ui/widgets/confetti_overlay.dart';
+import 'package:draft_race/ui/widgets/proof_card.dart';
 import 'package:draft_race/ui/widgets/top_picks_podium.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -246,6 +247,45 @@ void main() {
     expect(find.textContaining('Executed at:'), findsOneWidget);
     expect(find.textContaining('Settings metadata:'), findsOneWidget);
     expect(find.textContaining('League Ledger:'), findsOneWidget);
+    expect(find.byType(ProofCard), findsOneWidget);
+    expect(find.text('ORIGINAL DRAW • NO COMMISSIONER EDITS'), findsOneWidget);
+    expect(find.text('Share proof image'), findsOneWidget);
+  });
+
+  testWidgets('proof image prominently shows commissioner edit history', (
+    tester,
+  ) async {
+    final container = await _container();
+    addTearDown(container.dispose);
+
+    final config = container.read(draftConfigProvider.notifier);
+    config.addManager('Nick');
+    config.addManager('Jordan');
+    config.addManager('Taylor');
+    final controller = container.read(draftControllerProvider.notifier);
+    controller.run();
+    final original = container.read(draftControllerProvider)!.order;
+    controller.editOrder([
+      ...original.reversed,
+    ], editedAt: DateTime.utc(2026, 7, 14, 1, 2, 3));
+
+    await tester.pumpWidget(_resultHarness(container));
+    await tester.tap(find.byTooltip('What this proves'));
+    await tester.pumpAndSettle();
+
+    final result = container.read(draftControllerProvider)!;
+    expect(find.byType(ProofCard), findsOneWidget);
+    expect(find.text(result.proofCode), findsWidgets);
+    expect(find.text('COMMISSIONER OVERRIDE • 1 EDIT'), findsOneWidget);
+    expect(
+      find.textContaining('EDIT 1 • 2026-07-14T01:02:03.000Z'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('BEFORE'), findsOneWidget);
+    expect(find.textContaining('AFTER'), findsOneWidget);
+    expect(find.textContaining('Commissioner edits: 1'), findsOneWidget);
+    expect(find.byKey(const ValueKey('share-proof-image')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('tapping the proof code copies it and shows a snackbar', (
@@ -313,6 +353,44 @@ void main() {
     expect(find.text('Share recap'), findsOneWidget);
     expect(find.text('COPY SHORT RECAP'), findsOneWidget);
     expect(find.text('COPY FULL PROOF RECAP'), findsOneWidget);
+  });
+
+  testWidgets('result screen offers email when saved recipients exist', (
+    tester,
+  ) async {
+    final container = await _container();
+    addTearDown(container.dispose);
+    const roster = [
+      Participant(
+        id: 'p1',
+        name: 'Nick',
+        initials: 'NC',
+        email: 'nick@example.com',
+        colorValue: 0xFF3A86FF,
+      ),
+      Participant(
+        id: 'p2',
+        name: 'Jordan',
+        initials: 'JR',
+        colorValue: 0xFFE63946,
+      ),
+    ];
+    container
+        .read(draftControllerProvider.notifier)
+        .setResult(
+          DraftResult(
+            order: const ['p1', 'p2'],
+            seed: 7,
+            mode: DraftMode.race,
+            createdAt: DateTime.utc(2026, 7, 14),
+            rosterSnapshot: roster,
+          ),
+        );
+
+    await tester.pumpWidget(_resultHarness(container));
+
+    expect(find.text('EMAIL RESULTS'), findsOneWidget);
+    expect(find.textContaining('nick@example.com'), findsNothing);
   });
 
   testWidgets('recap preview sheet does not overflow on a 320x568 screen', (

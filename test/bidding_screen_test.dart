@@ -168,35 +168,34 @@ void main() {
     },
   );
 
-  testWidgets(
-    'no-bid round awards the pick to the highest budget for free',
-    (tester) async {
-      final container = await _container();
-      addTearDown(container.dispose);
+  testWidgets('no-bid round awards the pick to the highest budget for free', (
+    tester,
+  ) async {
+    final container = await _container();
+    addTearDown(container.dispose);
 
-      await tester.pumpWidget(_harness(container));
+    await tester.pumpWidget(_harness(container));
 
-      await _pass(tester, 'Nick');
-      await _pass(tester, 'Jordan');
-      await _pass(tester, 'Taylor');
+    await _pass(tester, 'Nick');
+    await _pass(tester, 'Jordan');
+    await _pass(tester, 'Taylor');
 
-      await tester.tap(find.text('REVEAL BIDS 👀'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('REVEAL BIDS 👀'));
+    await tester.pumpAndSettle();
 
-      // AuctionState.resolveRound fallback: highest remaining budget (Nick,
-      // 100 CB) takes the pick and pays nothing.
-      expect(find.text('NICK WINS'), findsOneWidget);
-      expect(find.text('paid 0 CB · 100 left'), findsOneWidget);
-      expect(find.text('passed'), findsNWidgets(3));
-      expect(find.text('—'), findsNWidgets(3));
+    // AuctionState.resolveRound fallback: highest remaining budget (Nick,
+    // 100 CB) takes the pick and pays nothing.
+    expect(find.text('NICK WINS'), findsOneWidget);
+    expect(find.text('paid 0 CB · 100 left'), findsOneWidget);
+    expect(find.text('passed'), findsNWidgets(3));
+    expect(find.text('—'), findsNWidgets(3));
 
-      final auction = container.read(auctionProvider)!;
-      expect(auction.assignedPicks, ['p1']);
-      expect(auction.budgetOf('p1'), 100); // free pick — nothing deducted
+    final auction = container.read(auctionProvider)!;
+    expect(auction.assignedPicks, ['p1']);
+    expect(auction.budgetOf('p1'), 100); // free pick — nothing deducted
 
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('shows an empty state when no auction is running', (
     tester,

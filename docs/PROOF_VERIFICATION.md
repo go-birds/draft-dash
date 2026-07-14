@@ -20,6 +20,10 @@ When a result recap is copied, it includes:
 - Manager settings at execution time, including names, jersey numbers, weights,
   and auction budgets
 - Final draft board
+- Every post-draw commissioner order edit, including its UTC timestamp and the
+  complete before/after order
+- A shareable PNG proof card with the proof code, original execution details,
+  final order, and prominent edit history (manager emails are never included)
 
 ## What The Proof Code Verifies
 
@@ -28,6 +32,8 @@ The short proof code is generated from:
 - Draft mode
 - Draft seed
 - Final ordered manager IDs
+- The complete commissioner edit audit trail, when edits exist: timestamp plus
+  every manager ID in the before and after orders
 
 If any of those change, the proof code changes.
 
@@ -52,6 +58,8 @@ The proof metadata explains the conditions under which the draft was executed:
   or summarized on draft day.
 - `settings.participants` proves the manager weights, budgets, numbers, and
   names that were present when the draft was executed.
+- `orderEdits` records every post-draw commissioner override as an immutable
+  before/after snapshot with a UTC timestamp.
 
 This gives league members enough context to answer, "Were these the settings we
 agreed to before the draw?"
@@ -68,6 +76,8 @@ agreed to before the draw?"
    trades, and notes the commissioner recorded.
 6. Confirm the final draft board in the recap matches the saved board in the
    app.
+7. If the proof card says `COMMISSIONER OVERRIDE`, inspect every before/after
+   order and confirm those changes were approved by the league.
 
 If all of those match, the recap represents the saved Draft Dash result and the
 settings snapshot used when it was executed.
@@ -78,9 +88,10 @@ settings snapshot used when it was executed.
   can paste a proof packet and recompute the code.
 - The proof code is an integrity check for the app-generated result, not a
   cryptographic signature.
-- If a commissioner edits the final order after the draw, the proof code follows
-  the edited saved order while the metadata still describes the settings used at
-  execution time.
+- A local commissioner can still create a different proof packet; the code and
+  image make changes conspicuous and internally consistent, but are not a
+  server-signed attestation. League members should compare the shared receipt
+  at the time of the draw.
 
 ## Developer Notes
 
@@ -89,3 +100,5 @@ settings snapshot used when it was executed.
   recaps when available.
 - `DraftProofMetadata.settings` stores a snapshot of `DraftConfig` so later
   league setup edits do not rewrite the audit record for old boards.
+- Legacy JSON without `orderEdits` remains valid and retains its original proof
+  code. Edited boards use the versioned edit-trail fingerprint extension.

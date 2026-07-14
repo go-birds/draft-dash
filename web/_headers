@@ -1,0 +1,9 @@
+# Cloudflare Pages response headers. The catch-all includes clean SPA routes
+# such as /setup, whose response is index.html after the Pages rewrite. Keep
+# those app-shell responses revalidating so releases do not leave stale shells.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  X-Frame-Options: DENY
+  Cache-Control: public, max-age=0, must-revalidate

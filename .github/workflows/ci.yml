@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.9
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build Android debug APK
+        run: flutter build apk --debug
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: draft-dash-android-debug
+          if-no-files-found: error
+          retention-days: 7
+          path: build/app/outputs/flutter-apk/app-debug.apk
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        mount: [root, draft-path]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.9
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build root-host bundle
+        if: matrix.mount == 'root'
+        run: ./tool/build_web.sh
+
+      - name: Verify root-host bundle
+        if: matrix.mount == 'root'
+        run: |
+          test -s build/web/main.dart.js
+          grep -Fq '<base href="/">' build/web/index.html
+          grep -Fxq "/* /index.html 200" build/web/_redirects
+
+      - name: Build /draft/ fragment
+        if: matrix.mount == 'draft-path'
+        run: ./tool/build_web.sh --mount-path /draft/
+
+      - name: Verify /draft/ fragment
+        if: matrix.mount == 'draft-path'
+        run: |
+          test -s build/site/draft/main.dart.js
+          grep -Fq '<base href="/draft/">' build/site/draft/index.html
+          grep -Fxq "/draft/* /draft/index.html 200" build/site/_redirects
+
+      - name: Upload root-host bundle
+        if: matrix.mount == 'root'
+        uses: actions/upload-artifact@v4
+        with:
+          name: draft-dash-web-root
+          if-no-files-found: error
+          retention-days: 7
+          path: build/web/
+
+      - name: Upload /draft/ merge fragment
+        if: matrix.mount == 'draft-path'
+        uses: actions/upload-artifact@v4
+        with:
+          name: draft-dash-web-draft-path
+          if-no-files-found: error
+          retention-days: 7
+          path: build/site/

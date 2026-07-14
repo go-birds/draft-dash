@@ -1,8 +1,13 @@
+import 'dart:convert';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/draft/draft_config.dart';
 import '../../domain/draft/draft_mode.dart';
+import '../../domain/draft/race_speed.dart';
+import '../navigation/app_router.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/buttons.dart';
@@ -12,7 +17,6 @@ import '../widgets/manager_tile.dart';
 import '../widgets/mode_card.dart';
 import 'bidding_screen.dart';
 import 'cards_screen.dart';
-import 'league_ledger_screen.dart';
 import 'lottery_screen.dart';
 import 'race_screen.dart';
 
@@ -64,6 +68,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ),
       builder: (sheetCtx) => _StartConfirmSheet(
         cfg: cfg,
+        raceSpeed: ref.read(settingsProvider).raceSpeed,
         onConfirm: () {
           Navigator.pop(sheetCtx);
           _launch(cfg);
@@ -98,10 +103,20 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     DraftMode.bidding => 'START THE AUCTION 💰',
   };
 
+  void _goBack() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      navigator.pushReplacementNamed(AppRoutes.home);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tk = context.tokens;
     final cfg = ref.watch(draftConfigProvider);
+    final settings = ref.watch(settingsProvider);
     final ctrl = ref.read(draftConfigProvider.notifier);
     final pinned = cfg.pins.isNotEmpty;
 
@@ -124,7 +139,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           size: 20,
                           color: tk.textPrimary,
                         ),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _goBack,
                       ),
                       Expanded(
                         child: TextField(
@@ -165,7 +180,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
-                          childAspectRatio: 0.88,
+                          mainAxisExtent: 164,
                           children: [
                             for (final m in DraftMode.values)
                               ModeCard(
@@ -186,9 +201,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       _panel(
                         tk,
                         title: 'MANAGERS',
-                        child: cfg.participants.isEmpty
-                            ? _emptyRoster(tk, ctrl)
-                            : Column(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _handicapSetup(tk, cfg, ctrl),
+                            const SizedBox(height: 14),
+                            if (cfg.participants.isEmpty)
+                              _emptyRoster(tk, ctrl)
+                            else
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   for (final p in cfg.participants) ...[
@@ -204,14 +225,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                                     children: [
                                       Expanded(
                                         child: GhostButton(
-                                          '＋ ADD MANAGER',
+                                          '＋ ADD MANAGERS',
                                           height: 46,
                                           onPressed:
                                               cfg.participants.length >=
                                                   DraftConfigController
                                                       .maxManagers
                                               ? null
-                                              : ctrl.addManager,
+                                              : () => _openAddManagers(
+                                                  DraftConfigController
+                                                          .maxManagers -
+                                                      cfg.participants.length,
+                                                  ctrl,
+                                                ),
                                         ),
                                       ),
                                     ],
@@ -230,63 +256,20 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                                   ],
                                 ],
                               ),
-                      ),
-                      _panel(
-                        tk,
-                        title: 'ODDS',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (cfg.mode == DraftMode.bidding)
-                              Text(
-                                'Auction mode uses budgets instead of odds.',
-                                style: tk.body.copyWith(
-                                  fontSize: 13,
-                                  color: tk.textMuted,
-                                ),
-                              )
-                            else ...[
-                              _toggle(
-                                tk,
-                                '⚖ HANDICAP',
-                                cfg.weightingEnabled,
-                                (v) => ctrl.setWeightingEnabled(v),
-                              ),
-                              if (cfg.weightingEnabled) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Set each manager’s multiplier independently. Everyone stays at 1.0× unless you edit them; Draft Dash turns those multipliers into fair draw odds right before the reveal.',
-                                  style: tk.body.copyWith(
-                                    fontSize: 12.5,
-                                    color: tk.textMuted,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                _toggle(
-                                  tk,
-                                  '🔁 REVERSE (worst picks first)',
-                                  cfg.reverseOrder,
-                                  (v) => ctrl.setReverseOrder(v),
-                                  full: true,
-                                ),
-                                const SizedBox(height: 10),
-                                Center(
-                                  child: TextButton(
-                                    onPressed: ctrl.resetOdds,
-                                    child: Text(
-                                      'Reset odds to even',
-                                      style: tk.body.copyWith(
-                                        fontSize: 13,
-                                        color: tk.textMuted,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
                           ],
                         ),
                       ),
+                      if (cfg.mode == DraftMode.race)
+                        _panel(
+                          tk,
+                          title: 'RACE SPEED',
+                          child: _RaceSpeedPicker(
+                            selected: settings.raceSpeed,
+                            onChanged: ref
+                                .read(settingsProvider.notifier)
+                                .setRaceSpeed,
+                          ),
+                        ),
                       _panel(
                         tk,
                         title: 'LOTTERY OPTIONS',
@@ -356,11 +339,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               textColor: cfg.ledgerEntries.isEmpty
                                   ? null
                                   : tk.gold,
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const LeagueLedgerScreen(),
-                                ),
-                              ),
+                              onPressed: () => Navigator.of(
+                                context,
+                              ).pushNamed(AppRoutes.ledger),
                             ),
                           ],
                         ),
@@ -403,15 +384,117 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         SizedBox(
           width: double.infinity,
           child: PrimaryButton(
-            'ADD FIRST MANAGER',
+            'ADD MANAGERS',
             height: 52,
             fontSize: 18,
-            onPressed: ctrl.addManager,
+            onPressed: () =>
+                _openAddManagers(DraftConfigController.maxManagers, ctrl),
           ),
         ),
       ],
     ),
   );
+
+  Widget _handicapSetup(
+    DraftTokens tk,
+    DraftConfig cfg,
+    DraftConfigController ctrl,
+  ) {
+    if (cfg.mode == DraftMode.bidding) {
+      return Text(
+        'Auction mode uses budgets instead of handicap odds.',
+        style: tk.body.copyWith(fontSize: 13, color: tk.textMuted),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cfg.weightingEnabled
+            ? tk.gold.withValues(alpha: .08)
+            : tk.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: cfg.weightingEnabled ? tk.gold : tk.scoreboardLine,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '⚖ HANDICAP ODDS',
+                  style: tk.label.copyWith(
+                    color: cfg.weightingEnabled ? tk.gold : tk.ice,
+                  ),
+                ),
+              ),
+              Switch(
+                value: cfg.weightingEnabled,
+                activeThumbColor: tk.gold,
+                onChanged: (value) {
+                  ctrl.setWeightingEnabled(value);
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
+          Text(
+            cfg.weightingEnabled
+                ? 'ON · Each manager now has an odds control below.'
+                : 'OFF · Every manager has the same chance.',
+            style: tk.body.copyWith(
+              fontSize: 12.5,
+              color: cfg.weightingEnabled ? tk.gold : tk.textMuted,
+            ),
+          ),
+          if (cfg.weightingEnabled) ...[
+            const SizedBox(height: 8),
+            Text(
+              '1.0× is even odds. Higher multipliers improve the chance of an early pick; lower multipliers reduce it. The scale places 1.0× in the center so boosts and penalties are easy to compare.',
+              style: tk.body.copyWith(fontSize: 12.5, color: tk.textMuted),
+            ),
+            const SizedBox(height: 8),
+            _toggle(
+              tk,
+              '🔁 REVERSE (favored managers pick later)',
+              cfg.reverseOrder,
+              ctrl.setReverseOrder,
+              full: true,
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: ctrl.resetOdds,
+                child: const Text('Reset all to 1.0×'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _openAddManagers(int available, DraftConfigController ctrl) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.tokens.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (_) => _AddManagersSheet(
+        maxManagers: available,
+        existingNames: ref
+            .read(draftConfigProvider)
+            .participants
+            .map((p) => p.name)
+            .toSet(),
+        onAdd: ctrl.addManagers,
+      ),
+    );
+  }
 
   Widget _panel(
     DraftTokens tk, {
@@ -497,12 +580,442 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 }
 
+class _RaceSpeedPicker extends StatelessWidget {
+  const _RaceSpeedPicker({required this.selected, required this.onChanged});
+
+  final RaceSpeed selected;
+  final ValueChanged<RaceSpeed> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Choose how long the race runs after the countdown.',
+          style: tk.body.copyWith(fontSize: 13, color: tk.textMuted),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final speed in RaceSpeed.values)
+              ChoiceChip(
+                key: ValueKey('race-speed-${speed.code}'),
+                label: Text('${speed.label} · ${speed.seconds}s'),
+                selected: selected == speed,
+                selectedColor: tk.gold,
+                backgroundColor: tk.surface,
+                side: BorderSide(
+                  color: selected == speed ? tk.gold : tk.scoreboardLine,
+                ),
+                labelStyle: tk.body.copyWith(
+                  fontSize: 12,
+                  color: selected == speed
+                      ? (ThemeData.estimateBrightnessForColor(tk.gold) ==
+                                Brightness.dark
+                            ? Colors.white
+                            : Colors.black)
+                      : tk.textPrimary,
+                ),
+                onSelected: (_) => onChanged(speed),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+enum _RosterEntryStep { choose, manualCount, manualForm, csv }
+
+class _AddManagersSheet extends StatefulWidget {
+  final int maxManagers;
+  final Set<String> existingNames;
+  final ValueChanged<List<({String name, String? email})>> onAdd;
+
+  const _AddManagersSheet({
+    required this.maxManagers,
+    required this.existingNames,
+    required this.onAdd,
+  });
+
+  @override
+  State<_AddManagersSheet> createState() => _AddManagersSheetState();
+}
+
+class _AddManagersSheetState extends State<_AddManagersSheet> {
+  _RosterEntryStep _step = _RosterEntryStep.choose;
+  int _manualCount = 2;
+  List<TextEditingController> _names = [];
+  List<TextEditingController> _emails = [];
+  List<({String name, String? email})> _csvManagers = [];
+  String? _error;
+  String? _fileName;
+  bool _pickingFile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _manualCount = widget.maxManagers.clamp(1, 2);
+  }
+
+  @override
+  void dispose() {
+    for (final controller in [..._names, ..._emails]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _prepareManualForm() {
+    for (final controller in [..._names, ..._emails]) {
+      controller.dispose();
+    }
+    _names = List.generate(_manualCount, (_) => TextEditingController());
+    _emails = List.generate(_manualCount, (_) => TextEditingController());
+    setState(() {
+      _step = _RosterEntryStep.manualForm;
+      _error = null;
+    });
+  }
+
+  Future<void> _pickCsv() async {
+    setState(() {
+      _pickingFile = true;
+      _error = null;
+    });
+    try {
+      const csvType = XTypeGroup(
+        label: 'CSV',
+        extensions: ['csv'],
+        mimeTypes: ['text/csv'],
+        uniformTypeIdentifiers: ['public.comma-separated-values-text'],
+        webWildCards: ['text/csv'],
+      );
+      final file = await openFile(acceptedTypeGroups: [csvType]);
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      final parsed = parseManagerCsv(utf8.decode(bytes, allowMalformed: true));
+      final limited = parsed.take(widget.maxManagers).toList();
+      setState(() {
+        _csvManagers = limited;
+        _fileName = file.name;
+        _error = parsed.length > widget.maxManagers
+            ? 'Only the first ${widget.maxManagers} managers will be added.'
+            : null;
+      });
+    } on FormatException catch (error) {
+      setState(() => _error = error.message);
+    } catch (_) {
+      setState(() => _error = 'Could not import that CSV. Check the format.');
+    } finally {
+      if (mounted) setState(() => _pickingFile = false);
+    }
+  }
+
+  void _submitManual() {
+    final entries = [
+      for (var i = 0; i < _names.length; i++)
+        (name: _names[i].text.trim(), email: _emails[i].text.trim()),
+    ];
+    final error = _validate(entries);
+    if (error != null) {
+      setState(() => _error = error);
+      return;
+    }
+    widget.onAdd([
+      for (final entry in entries)
+        (name: entry.name, email: entry.email.isEmpty ? null : entry.email),
+    ]);
+    Navigator.pop(context);
+  }
+
+  void _submitCsv() {
+    final error = _validate(_csvManagers);
+    if (error != null) {
+      setState(() => _error = error);
+      return;
+    }
+    widget.onAdd(_csvManagers);
+    Navigator.pop(context);
+  }
+
+  String? _validate(List<({String name, String? email})> entries) {
+    if (entries.isEmpty) return 'Add at least one manager.';
+    if (entries.any((entry) => entry.name.trim().isEmpty)) {
+      return 'Every manager needs a name.';
+    }
+    final seen = widget.existingNames.map((name) => name.toLowerCase()).toSet();
+    for (final entry in entries) {
+      if (!seen.add(entry.name.trim().toLowerCase())) {
+        return 'Manager names must be unique.';
+      }
+      final email = entry.email?.trim() ?? '';
+      if (email.isNotEmpty && !_looksLikeEmail(email)) {
+        return 'Check the email address for ${entry.name}.';
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * .86,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  if (_step != _RosterEntryStep.choose)
+                    IconButton(
+                      key: const ValueKey('roster-entry-back'),
+                      onPressed: () => setState(() {
+                        _step = _RosterEntryStep.choose;
+                        _error = null;
+                      }),
+                      icon: const Icon(Icons.arrow_back),
+                    ),
+                  Expanded(
+                    child: Text(
+                      'ADD MANAGERS',
+                      style: tk.displayLarge.copyWith(
+                        fontSize: 24,
+                        color: tk.gold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Flexible(child: SingleChildScrollView(child: _content(tk))),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _error!,
+                  key: const ValueKey('manager-import-error'),
+                  style: tk.body.copyWith(color: tk.whistle, fontSize: 12.5),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _content(DraftTokens tk) => switch (_step) {
+    _RosterEntryStep.choose => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'How do you want to build the roster?',
+          style: tk.body.copyWith(color: tk.textMuted),
+        ),
+        const SizedBox(height: 16),
+        PrimaryButton(
+          'ENTER MANUALLY',
+          icon: Icons.edit_rounded,
+          onPressed: () => setState(() {
+            _step = _RosterEntryStep.manualCount;
+            _error = null;
+          }),
+        ),
+        const SizedBox(height: 10),
+        GhostButton(
+          'UPLOAD CSV',
+          icon: Icons.upload_file_rounded,
+          onPressed: () => setState(() {
+            _step = _RosterEntryStep.csv;
+            _error = null;
+          }),
+        ),
+      ],
+    ),
+    _RosterEntryStep.manualCount => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('How many managers?', style: tk.title),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          key: const ValueKey('manual-manager-count'),
+          initialValue: _manualCount,
+          items: [
+            for (var count = 1; count <= widget.maxManagers; count++)
+              DropdownMenuItem(value: count, child: Text('$count')),
+          ],
+          onChanged: (count) => setState(() => _manualCount = count ?? 1),
+        ),
+        const SizedBox(height: 16),
+        PrimaryButton('CONTINUE', onPressed: _prepareManualForm),
+      ],
+    ),
+    _RosterEntryStep.manualForm => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Enter $_manualCount manager${_manualCount == 1 ? '' : 's'}',
+          style: tk.title,
+        ),
+        const SizedBox(height: 12),
+        for (var i = 0; i < _names.length; i++) ...[
+          Text('MANAGER ${i + 1}', style: tk.label.copyWith(color: tk.gold)),
+          const SizedBox(height: 6),
+          TextField(
+            key: ValueKey('manager-name-$i'),
+            controller: _names[i],
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Name'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            key: ValueKey('manager-email-$i'),
+            controller: _emails[i],
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Email (optional)'),
+          ),
+          const SizedBox(height: 14),
+        ],
+        PrimaryButton('ADD TO LEAGUE', onPressed: _submitManual),
+      ],
+    ),
+    _RosterEntryStep.csv => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Upload a .csv file', style: tk.title),
+        const SizedBox(height: 6),
+        Text(
+          'Use columns “name” and “email”. Email is optional. A header row is recommended.',
+          style: tk.body.copyWith(fontSize: 12.5, color: tk.textMuted),
+        ),
+        const SizedBox(height: 12),
+        GhostButton(
+          _pickingFile ? 'OPENING FILES…' : 'CHOOSE CSV FILE',
+          icon: Icons.folder_open_rounded,
+          onPressed: _pickingFile ? null : _pickCsv,
+        ),
+        if (_fileName != null) ...[
+          const SizedBox(height: 12),
+          Text('$_fileName · ${_csvManagers.length} managers', style: tk.body),
+          const SizedBox(height: 8),
+          for (final manager in _csvManagers)
+            Text(
+              manager.email == null
+                  ? manager.name
+                  : '${manager.name} · ${manager.email}',
+              style: tk.body.copyWith(fontSize: 12.5, color: tk.textMuted),
+            ),
+          const SizedBox(height: 14),
+          PrimaryButton('IMPORT MANAGERS', onPressed: _submitCsv),
+        ],
+      ],
+    ),
+  };
+}
+
+bool _looksLikeEmail(String value) =>
+    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
+
+/// Parses name/email CSV with quoted fields, escaped quotes, CRLF, and an
+/// optional header row. Exposed for focused unit tests.
+List<({String name, String? email})> parseManagerCsv(String source) {
+  final rows = <List<String>>[];
+  var row = <String>[];
+  var field = StringBuffer();
+  var quoted = false;
+
+  void endField() {
+    row.add(field.toString().trim());
+    field = StringBuffer();
+  }
+
+  void endRow() {
+    endField();
+    if (row.any((value) => value.isNotEmpty)) rows.add(row);
+    row = <String>[];
+  }
+
+  for (var i = 0; i < source.length; i++) {
+    final char = source[i];
+    if (char == '"') {
+      if (quoted && i + 1 < source.length && source[i + 1] == '"') {
+        field.write('"');
+        i++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (char == ',' && !quoted) {
+      endField();
+    } else if ((char == '\n' || char == '\r') && !quoted) {
+      if (char == '\r' && i + 1 < source.length && source[i + 1] == '\n') i++;
+      endRow();
+    } else {
+      field.write(char);
+    }
+  }
+  if (quoted) throw const FormatException('The CSV has an unclosed quote.');
+  if (field.isNotEmpty || row.isNotEmpty) endRow();
+  if (rows.isEmpty) throw const FormatException('The CSV is empty.');
+
+  var nameColumn = 0;
+  int? emailColumn = 1;
+  var firstDataRow = 0;
+  final header = rows.first.map((value) => value.toLowerCase()).toList();
+  final headerName = header.indexWhere((value) => value == 'name');
+  if (headerName >= 0) {
+    nameColumn = headerName;
+    final foundEmail = header.indexWhere((value) => value == 'email');
+    emailColumn = foundEmail < 0 ? null : foundEmail;
+    firstDataRow = 1;
+  }
+
+  final managers = <({String name, String? email})>[];
+  for (final values in rows.skip(firstDataRow)) {
+    final name = nameColumn < values.length ? values[nameColumn].trim() : '';
+    final email = emailColumn != null && emailColumn < values.length
+        ? values[emailColumn].trim()
+        : '';
+    if (name.isEmpty) {
+      throw const FormatException('Every CSV row needs a manager name.');
+    }
+    managers.add((name: name, email: email.isEmpty ? null : email));
+  }
+  if (managers.isEmpty) {
+    throw const FormatException('The CSV does not contain any managers.');
+  }
+  return managers;
+}
+
 /// Pre-draft confirmation: summarizes the setup before the reveal starts.
 class _StartConfirmSheet extends StatelessWidget {
   final DraftConfig cfg;
+  final RaceSpeed raceSpeed;
   final VoidCallback onConfirm;
 
-  const _StartConfirmSheet({required this.cfg, required this.onConfirm});
+  const _StartConfirmSheet({
+    required this.cfg,
+    required this.raceSpeed,
+    required this.onConfirm,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -536,6 +1049,12 @@ class _StartConfirmSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 _row(tk, 'FORMAT', cfg.mode.label),
+                if (cfg.mode == DraftMode.race)
+                  _row(
+                    tk,
+                    'RACE SPEED',
+                    '${raceSpeed.label} · ${raceSpeed.seconds} seconds',
+                  ),
                 _row(tk, 'MANAGERS', '${cfg.participants.length}'),
                 _row(tk, 'HANDICAP ODDS', cfg.weightingEnabled ? 'ON' : 'OFF'),
                 _row(tk, 'COMMISSIONER PINS', '${cfg.pins.length}'),
@@ -594,11 +1113,15 @@ class _LotteryDepthControl extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                '🎱 LOTTERY PICKS',
-                style: tk.label.copyWith(color: tk.gold, fontSize: 12),
+              Expanded(
+                child: Text(
+                  '🎱 LOTTERY PICKS',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tk.label.copyWith(color: tk.gold, fontSize: 12),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 '$pickCount of $maxPickCount',
                 style: tk.mono.copyWith(color: tk.led, fontSize: 12),
@@ -746,7 +1269,7 @@ class _CommissionerSheet extends ConsumerWidget {
                                 children: [
                                   JerseyChip(
                                     color: Color(pinned.colorValue),
-                                    number: pinned.number,
+                                    number: pinned.initials,
                                     size: 34,
                                   ),
                                   const SizedBox(width: 10),
@@ -809,7 +1332,7 @@ class _CommissionerSheet extends ConsumerWidget {
                   children: [
                     JerseyChip(
                       color: Color(p.colorValue),
-                      number: p.number,
+                      number: p.initials,
                       size: 30,
                     ),
                     const SizedBox(width: 12),

@@ -24,14 +24,14 @@ void main() {
           Participant(
             id: 'p1',
             name: 'Nick',
-            number: '07',
+            initials: 'NC',
             colorValue: 0xFF3A86FF,
             weight: 1,
           ),
           Participant(
             id: 'p2',
             name: 'Jordan',
-            number: '23',
+            initials: 'JS',
             colorValue: 0xFFE63946,
             weight: 3,
           ),
@@ -59,13 +59,13 @@ void main() {
           Participant(
             id: 'p1',
             name: 'Nick',
-            number: '07',
+            initials: 'NC',
             colorValue: 0xFF3A86FF,
           ),
           Participant(
             id: 'p2',
             name: 'Jordan',
-            number: '23',
+            initials: 'JS',
             colorValue: 0xFFE63946,
           ),
         ],
@@ -171,46 +171,79 @@ void main() {
     });
   });
 
-  group('jersey number validation', () {
-    testWidgets('jersey input keeps digits only, max two', (tester) async {
-      final storage = await _singleManagerStorage(number: '23');
+  group('avatar initials and email editing', () {
+    testWidgets('initials input keeps letters only, max three', (tester) async {
+      final storage = await _singleManagerStorage(initials: 'NC');
       await tester.pumpWidget(_managerTileHarness(storage));
 
       await _openEditDialog(tester, 'Nick');
-      await tester.enterText(find.byType(TextField).at(1), 'a1b2c3');
+      await tester.enterText(find.byType(TextField).at(1), 'a1b2c3d');
 
       final field = tester.widget<TextField>(find.byType(TextField).at(1));
-      expect(field.controller!.text, '12');
+      expect(field.controller!.text, 'ABC');
 
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
-      expect(find.text('12'), findsOneWidget);
+      expect(find.text('ABC'), findsOneWidget);
     });
 
-    testWidgets('single digit jersey is padded to two digits', (tester) async {
-      final storage = await _singleManagerStorage(number: '23');
+    testWidgets('empty initials derive from the edited name', (tester) async {
+      final storage = await _singleManagerStorage(initials: 'NC');
       await tester.pumpWidget(_managerTileHarness(storage));
 
       await _openEditDialog(tester, 'Nick');
-      await tester.enterText(find.byType(TextField).at(1), '7');
-      await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('07'), findsOneWidget);
-      expect(find.text('7'), findsNothing);
-    });
-
-    testWidgets('empty jersey keeps the previous number', (tester) async {
-      final storage = await _singleManagerStorage(number: '23');
-      await tester.pumpWidget(_managerTileHarness(storage));
-
-      await _openEditDialog(tester, 'Nick');
+      await tester.enterText(find.byType(TextField).first, 'Nick Coleman');
       await tester.enterText(find.byType(TextField).at(1), '');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
-      expect(find.text('23'), findsOneWidget);
+      expect(storage.loadConfig()!.participants.single.initials, 'NC');
     });
+
+    testWidgets('optional email is saved', (tester) async {
+      final storage = await _singleManagerStorage(initials: 'NC');
+      await tester.pumpWidget(_managerTileHarness(storage));
+
+      await _openEditDialog(tester, 'Nick');
+      await tester.enterText(find.byType(TextField).at(2), 'nick@example.com');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(
+        storage.loadConfig()!.participants.single.email,
+        'nick@example.com',
+      );
+    });
+  });
+
+  testWidgets('1.0 odds is centered and plus/minus step by 0.1', (
+    tester,
+  ) async {
+    final storage = await _singleManagerStorage(initials: 'NC');
+    await tester.pumpWidget(_managerTileHarness(storage));
+
+    final slider = tester.widget<Slider>(
+      find.byKey(const ValueKey('weight-slider-p1')),
+    );
+    expect(slider.value, .5);
+    await tester.tap(find.byTooltip('Increase Nick odds'));
+    await tester.pumpAndSettle();
+    expect(storage.loadConfig()!.participants.single.weight, 1.1);
+    await tester.tap(find.byTooltip('Decrease Nick odds'));
+    await tester.pumpAndSettle();
+    expect(storage.loadConfig()!.participants.single.weight, 1.0);
+  });
+
+  testWidgets('handicap controls fit a 320px phone width', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final storage = await _singleManagerStorage(initials: 'NC');
+    await tester.pumpWidget(_managerTileHarness(storage));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byTooltip('Decrease Nick odds'), findsOneWidget);
+    expect(find.byTooltip('Increase Nick odds'), findsOneWidget);
   });
 
   group('taunt editing', () {
@@ -237,7 +270,7 @@ void main() {
 
     testWidgets('clearing the taunt stores null', (tester) async {
       final storage = await _singleManagerStorage(
-        number: '07',
+        initials: 'NC',
         taunt: 'Scoreboard.',
       );
       await tester.pumpWidget(_managerTileHarness(storage));
@@ -276,13 +309,13 @@ Future<StorageService> _twoManagerStorage() async {
         Participant(
           id: 'p1',
           name: 'Nick',
-          number: '07',
+          initials: 'NC',
           colorValue: 0xFF3A86FF,
         ),
         Participant(
           id: 'p2',
           name: 'Jordan',
-          number: '23',
+          initials: 'JS',
           colorValue: 0xFFE63946,
         ),
       ],
@@ -292,7 +325,7 @@ Future<StorageService> _twoManagerStorage() async {
 }
 
 Future<StorageService> _singleManagerStorage({
-  required String number,
+  required String initials,
   String? taunt,
 }) async {
   SharedPreferences.setMockInitialValues({});
@@ -303,7 +336,7 @@ Future<StorageService> _singleManagerStorage({
         Participant(
           id: 'p1',
           name: 'Nick',
-          number: number,
+          initials: initials,
           colorValue: 0xFF3A86FF,
           taunt: taunt,
         ),

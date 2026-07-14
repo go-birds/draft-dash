@@ -3,6 +3,43 @@ import 'draft_mode.dart';
 import 'league_ledger.dart';
 import 'participant.dart';
 
+/// One commissioner-authored change to the generated draft order.
+///
+/// Full before/after boards are retained instead of only the moved manager so
+/// the audit trail remains unambiguous when several edits are made.
+class DraftOrderEdit {
+  final DateTime editedAt;
+  final List<String> previousOrder;
+  final List<String> updatedOrder;
+
+  DraftOrderEdit({
+    required this.editedAt,
+    required List<String> previousOrder,
+    required List<String> updatedOrder,
+  }) : previousOrder = List<String>.unmodifiable(previousOrder),
+       updatedOrder = List<String>.unmodifiable(updatedOrder);
+
+  Map<String, dynamic> toJson() => {
+    'editedAt': editedAt.toIso8601String(),
+    'previousOrder': previousOrder,
+    'updatedOrder': updatedOrder,
+  };
+
+  static DraftOrderEdit fromJson(Map<String, dynamic> json) => DraftOrderEdit(
+    editedAt:
+        DateTime.tryParse((json['editedAt'] ?? '') as String) ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    previousOrder: [
+      for (final id in ((json['previousOrder'] ?? const []) as List))
+        id as String,
+    ],
+    updatedOrder: [
+      for (final id in ((json['updatedOrder'] ?? const []) as List))
+        id as String,
+    ],
+  );
+}
+
 /// Audit-friendly metadata captured when a draft is executed.
 ///
 /// The short proof code stays compact and deterministic. This metadata keeps
@@ -11,12 +48,14 @@ class DraftProofMetadata {
   final DateTime executedAt;
   final int seed;
   final DraftConfig settings;
+  final List<DraftOrderEdit> orderEdits;
 
-  const DraftProofMetadata({
+  DraftProofMetadata({
     required this.executedAt,
     required this.seed,
     required this.settings,
-  });
+    List<DraftOrderEdit> orderEdits = const [],
+  }) : orderEdits = List<DraftOrderEdit>.unmodifiable(orderEdits);
 
   factory DraftProofMetadata.fromConfig(
     DraftConfig settings, {
@@ -38,10 +77,20 @@ class DraftProofMetadata {
     ),
   );
 
+  DraftProofMetadata copyWith({List<DraftOrderEdit>? orderEdits}) =>
+      DraftProofMetadata(
+        executedAt: executedAt,
+        seed: seed,
+        settings: settings,
+        orderEdits: orderEdits ?? this.orderEdits,
+      );
+
   Map<String, dynamic> toJson() => {
     'executedAt': executedAt.toIso8601String(),
     'seed': seed,
     'settings': settings.toJson(),
+    if (orderEdits.isNotEmpty)
+      'orderEdits': [for (final edit in orderEdits) edit.toJson()],
   };
 
   static DraftProofMetadata fromJson(Map<String, dynamic> j) =>
@@ -53,6 +102,10 @@ class DraftProofMetadata {
         settings: DraftConfig.fromJson(
           Map<String, dynamic>.from((j['settings'] ?? const {}) as Map),
         ),
+        orderEdits: [
+          for (final edit in ((j['orderEdits'] ?? const []) as List))
+            DraftOrderEdit.fromJson(Map<String, dynamic>.from(edit as Map)),
+        ],
       );
 }
 
@@ -108,6 +161,23 @@ class DraftResult {
     mixInt(seed);
     for (final id in order) {
       mixString(id);
+    }
+    final edits = proofMetadata?.orderEdits ?? const <DraftOrderEdit>[];
+    if (edits.isNotEmpty) {
+      // Preserve legacy proof codes exactly for boards with no edit trail.
+      mixString('commissioner-order-edits-v1');
+      mixInt(edits.length);
+      for (final edit in edits) {
+        mixString(edit.editedAt.toUtc().toIso8601String());
+        mixInt(edit.previousOrder.length);
+        for (final id in edit.previousOrder) {
+          mixString(id);
+        }
+        mixInt(edit.updatedOrder.length);
+        for (final id in edit.updatedOrder) {
+          mixString(id);
+        }
+      }
     }
 
     final body = hash.toRadixString(36).toUpperCase().padLeft(7, '0');

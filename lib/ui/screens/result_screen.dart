@@ -1,16 +1,23 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/draft/participant.dart';
 import '../../domain/draft/draft_recap.dart';
 import '../../domain/draft/draft_result.dart';
 import '../../services/feedback.dart';
+import '../../services/result_email.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/buttons.dart';
 import '../widgets/confetti_overlay.dart';
 import '../widgets/jersey_chip.dart';
+import '../widgets/proof_card.dart';
 import '../widgets/top_picks_podium.dart';
 
 class ResultScreen extends ConsumerStatefulWidget {
@@ -24,6 +31,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   /// Set on the first build that shows a valid board, so commissioner
   /// reorders/rebuilds don't replay the celebration cue.
   bool _celebrated = false;
+  final GlobalKey _proofCardKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +56,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       return _UnavailableResult(resultProofCode: result.proofCode);
     }
     final champ = ordered.first;
+    final emailRecipients = ResultEmail.recipients(ordered);
 
     if (!_celebrated) {
       _celebrated = true;
@@ -66,6 +75,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       ref.read(draftControllerProvider.notifier).editOrder(ids);
     }
 
+    String fullRecap() => DraftRecap.formatFull(
+      mode: result.mode,
+      ordered: ordered,
+      leagueName: ref.read(leagueNameProvider),
+      proofCode: result.proofCode,
+      proofMetadata: result.proofMetadata,
+    );
+
     Future<void> showRecapPreview() async {
       final shortRecap = DraftRecap.formatShort(
         mode: result.mode,
@@ -73,17 +90,27 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         leagueName: ref.read(leagueNameProvider),
         proofCode: result.proofCode,
       );
-      final fullRecap = DraftRecap.formatFull(
-        mode: result.mode,
-        ordered: ordered,
-        leagueName: ref.read(leagueNameProvider),
-        proofCode: result.proofCode,
-        proofMetadata: result.proofMetadata,
-      );
       await _showRecapPreviewSheet(
         context,
         shortRecap: shortRecap,
-        fullRecap: fullRecap,
+        fullRecap: fullRecap(),
+      );
+    }
+
+    Future<void> emailResults() async {
+      final leagueName = ref.read(leagueNameProvider).trim();
+      final subject = leagueName.isEmpty
+          ? 'Draft Dash results'
+          : '$leagueName draft results';
+      final uri = ResultEmail.composeUri(
+        participants: ordered,
+        subject: subject,
+        body: fullRecap(),
+      );
+      final opened = await launchUrl(uri);
+      if (opened || !context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open an email app')),
       );
     }
 
@@ -92,6 +119,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         context,
         proofCode: result.proofCode,
         proofMetadata: result.proofMetadata,
+        result: result,
+        ordered: ordered,
+        proofCardKey: _proofCardKey,
       );
     }
 
@@ -269,6 +299,15 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           ),
                         ],
                       ),
+                      if (emailRecipients.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        GhostButton(
+                          'EMAIL RESULTS',
+                          icon: Icons.email_outlined,
+                          height: 48,
+                          onPressed: emailResults,
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       PrimaryButton(
                         'SAVE BOARD',
@@ -394,6 +433,9 @@ void _showProofExplainerDialog(
   BuildContext context, {
   required String proofCode,
   DraftProofMetadata? proofMetadata,
+  required DraftResult result,
+  required List<Participant> ordered,
+  required GlobalKey proofCardKey,
 }) {
   final tk = context.tokens;
   showDialog<void>(
@@ -410,6 +452,46 @@ void _showProofExplainerDialog(
         ScaffoldMessenger.of(
           dialogContext,
         ).showSnackBar(const SnackBar(content: Text('Proof code copied')));
+      }
+
+      Future<void> shareProofImage() async {
+        try {
+          await WidgetsBinding.instance.endOfFrame;
+          if (!dialogContext.mounted) return;
+          final boundary = proofCardKey.currentContext?.findRenderObject();
+          if (boundary is! RenderRepaintBoundary) {
+            throw StateError('Proof card is not ready');
+          }
+          final image = await boundary.toImage(pixelRatio: 2);
+          final data = await image.toByteData(format: ui.ImageByteFormat.png);
+          if (data == null) throw StateError('Could not encode proof image');
+          if (!dialogContext.mounted) return;
+          final box = dialogContext.findRenderObject() as RenderBox?;
+          final origin = box == null
+              ? null
+              : box.localToGlobal(Offset.zero) & box.size;
+          await SharePlus.instance.share(
+            ShareParams(
+              title: 'Draft Dash proof ${result.proofCode}',
+              subject: 'Draft Dash proof ${result.proofCode}',
+              text: 'Draft Dash proof ${result.proofCode}',
+              files: [
+                XFile.fromData(
+                  data.buffer.asUint8List(),
+                  mimeType: 'image/png',
+                ),
+              ],
+              fileNameOverrides: ['draft-dash-${result.proofCode}.png'],
+              sharePositionOrigin: origin,
+              downloadFallbackEnabled: true,
+            ),
+          );
+        } catch (_) {
+          if (!dialogContext.mounted) return;
+          ScaffoldMessenger.of(dialogContext).showSnackBar(
+            const SnackBar(content: Text('Could not create proof image')),
+          );
+        }
       }
 
       return AlertDialog(
@@ -444,6 +526,15 @@ void _showProofExplainerDialog(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.topLeft,
+                  child: RepaintBoundary(
+                    key: proofCardKey,
+                    child: ProofCard(result: result, ordered: ordered),
+                  ),
+                ),
+                const SizedBox(height: 18),
                 for (final line in lines) ...[
                   if (line == 'Proof code: $proofCode')
                     Semantics(
@@ -489,6 +580,12 @@ void _showProofExplainerDialog(
           ),
         ),
         actions: [
+          TextButton.icon(
+            key: const ValueKey('share-proof-image'),
+            onPressed: shareProofImage,
+            icon: const Icon(Icons.ios_share_rounded),
+            label: const Text('Share proof image'),
+          ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text('Close', style: TextStyle(color: tk.textMuted)),
@@ -672,7 +769,7 @@ class _ChampBanner extends StatelessWidget {
                   SizedBox(height: compact ? 6 : 10),
                   JerseyChip(
                     color: Color(champ.colorValue),
-                    number: champ.number,
+                    number: champ.initials,
                     size: compact ? 44 : 66,
                     highlight: true,
                   ),
@@ -732,7 +829,7 @@ class _PickRow extends StatelessWidget {
               ),
             ),
           ),
-          JerseyChip(color: Color(p.colorValue), number: p.number, size: 42),
+          JerseyChip(color: Color(p.colorValue), number: p.initials, size: 42),
           const SizedBox(width: 14),
           Expanded(
             child: Text(

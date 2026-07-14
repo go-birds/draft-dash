@@ -3,7 +3,7 @@ import 'package:draft_race/domain/draft/draft_mode.dart';
 import 'package:draft_race/domain/draft/league_ledger.dart';
 import 'package:draft_race/domain/draft/participant.dart';
 import 'package:draft_race/storage/storage_service.dart';
-import 'package:draft_race/ui/screens/home_screen.dart';
+import 'package:draft_race/ui/navigation/app_router.dart';
 import 'package:draft_race/ui/state/providers.dart';
 import 'package:draft_race/ui/theme/app_tokens.dart';
 import 'package:draft_race/ui/theme/themes.dart';
@@ -24,6 +24,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('CREATE LEAGUE'), findsOneWidget);
+    expect(find.text('DRAFT'), findsNWidgets(2));
+    expect(find.text('PRIMARY ACTION'), findsNothing);
     expect(find.text('No saved league yet'), findsOneWidget);
     expect(find.text('Create league'), findsOneWidget);
     expect(find.text('Add managers'), findsOneWidget);
@@ -79,9 +81,19 @@ Future<StorageService> _storageWithLeague() async {
   SharedPreferences.setMockInitialValues({});
   final storage = await StorageService.open();
   const managers = [
-    Participant(id: 'p1', name: 'Nick', number: '07', colorValue: 0xFF3A86FF),
-    Participant(id: 'p2', name: 'Jordan', number: '23', colorValue: 0xFFE63946),
-    Participant(id: 'p3', name: 'Taylor', number: '12', colorValue: 0xFFFFB703),
+    Participant(id: 'p1', name: 'Nick', initials: 'NC', colorValue: 0xFF3A86FF),
+    Participant(
+      id: 'p2',
+      name: 'Jordan',
+      initials: 'JS',
+      colorValue: 0xFFE63946,
+    ),
+    Participant(
+      id: 'p3',
+      name: 'Taylor',
+      initials: 'TR',
+      colorValue: 0xFFFFB703,
+    ),
   ];
   await storage.setLeagueName('Sunday League');
   await storage.saveConfig(
@@ -118,6 +130,10 @@ Widget _homeHarness(StorageService storage) => ProviderScope(
   overrides: [storageProvider.overrideWithValue(storage)],
   child: AppThemeScope<DraftTokens>(
     theme: AppThemes.defaultTheme,
-    child: const MaterialApp(home: HomeScreen()),
+    child: MaterialApp(
+      initialRoute: AppRoutes.home,
+      onGenerateRoute: AppRouter.onGenerateRoute,
+      onUnknownRoute: AppRouter.onUnknownRoute,
+    ),
   ),
 );

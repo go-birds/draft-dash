@@ -347,7 +347,7 @@ class _LuckRow extends StatelessWidget {
         children: [
           JerseyChip(
             color: p != null ? Color(p.colorValue) : tk.textMuted,
-            number: p?.number ?? '–',
+            number: p?.initials ?? '–',
             size: 28,
           ),
           const SizedBox(width: 10),
@@ -547,7 +547,7 @@ class _SavedBoardHero extends StatelessWidget {
               children: [
                 JerseyChip(
                   color: Color(champ.colorValue),
-                  number: champ.number,
+                  number: champ.initials,
                   size: 54,
                   highlight: true,
                 ),
@@ -829,7 +829,7 @@ class _SavedPickRow extends StatelessWidget {
           ),
           JerseyChip(
             color: Color(participant.colorValue),
-            number: participant.number,
+            number: participant.initials,
             size: 42,
           ),
           const SizedBox(width: 14),

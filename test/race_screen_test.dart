@@ -41,24 +41,21 @@ void main() {
       final runners = [
         const RaceRunner(
           color: Color(0xFF3A86FF),
-          number: '07',
+          initials: 'NC',
           progress: 0.02,
           stride: 0,
-          leader: false,
         ),
         const RaceRunner(
           color: Color(0xFFE63946),
-          number: '23',
+          initials: 'JR',
           progress: 0.06,
           stride: 0,
-          leader: false,
         ),
         const RaceRunner(
           color: Color(0xFFFFB703),
-          number: '12',
+          initials: 'TS',
           progress: 0.10,
           stride: 0,
-          leader: false,
         ),
       ];
       final canvasSize = const ui.Size(1280, 720);

@@ -45,6 +45,10 @@ flutter pub get
 flutter run
 ```
 
+Run the web app locally with `flutter run -d chrome`. Deployment configuration
+for Greenbean Studio is documented in
+[`docs/WEB_DEPLOYMENT.md`](docs/WEB_DEPLOYMENT.md).
+
 Useful checks before committing:
 
 ```bash
@@ -94,6 +98,11 @@ Copied draft recaps include a proof code, execution timestamp, draft seed, draft
 settings snapshot, commissioner pins, manager settings, and final board. Use
 these together to confirm the saved result matches the settings the league
 agreed to before the draw.
+
+Post-draw commissioner reorders are retained as timestamped before/after audit
+entries and committed into the proof code. The result screen can also export a
+PNG proof receipt containing the final order and visible edit history without
+including manager email addresses.
 
 If League Ledger entries are present, recaps also include their draft-day
 summary so odds penalties, bonuses, and pick locks are visible to the league.

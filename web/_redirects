@@ -1,0 +1,3 @@
+# Root/subdomain SPA fallback. tool/build_web.sh rewrites both paths when it
+# packages a /draft/ fragment for an existing site's output.
+/* /index.html 200

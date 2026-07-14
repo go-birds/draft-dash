@@ -26,10 +26,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('FORMAT'), findsOneWidget);
+    await _dragUntilTextVisible(tester, 'MANAGERS');
     expect(find.text('MANAGERS'), findsOneWidget);
 
     for (final label in const [
-      'ODDS',
       'LOTTERY OPTIONS',
       'COMMISSIONER',
       'LEAGUE LEDGER',
@@ -94,7 +94,7 @@ void main() {
     expect(find.text('League is full (16 max)'), findsOneWidget);
 
     final addButton = tester.widget<GhostButton>(
-      find.widgetWithText(GhostButton, '＋ ADD MANAGER'),
+      find.widgetWithText(GhostButton, '＋ ADD MANAGERS'),
     );
     expect(addButton.onPressed, isNull);
   });
@@ -113,14 +113,103 @@ void main() {
     await _dragUntilTextVisible(tester, emptyText);
     expect(find.text(emptyText), findsOneWidget);
 
-    await _dragUntilHitTestable(tester, find.text('ADD FIRST MANAGER'));
-    await tester.tap(find.text('ADD FIRST MANAGER'));
+    await _dragUntilHitTestable(tester, find.text('ADD MANAGERS'));
+    await tester.tap(find.text('ADD MANAGERS'));
     await tester.pumpAndSettle();
 
-    expect(find.text(emptyText), findsNothing);
-    expect(find.text('ADD FIRST MANAGER'), findsNothing);
-    await _dragUntilTextVisible(tester, '＋ ADD MANAGER');
-    expect(find.text('＋ ADD MANAGER'), findsOneWidget);
+    expect(find.text('How do you want to build the roster?'), findsOneWidget);
+    expect(find.text('ENTER MANUALLY'), findsOneWidget);
+    expect(find.text('UPLOAD CSV'), findsOneWidget);
+  });
+
+  testWidgets('manual roster entry creates the selected number in one form', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final storage = await _storageWithManagers(count: 0);
+    await tester.pumpWidget(_setupHarness(storage));
+    await tester.pumpAndSettle();
+
+    await _dragUntilHitTestable(tester, find.text('ADD MANAGERS'));
+    await tester.tap(find.text('ADD MANAGERS'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ENTER MANUALLY'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('manual-manager-count')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('CONTINUE'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('manager-name-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('manager-name-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('manager-name-2')), findsOneWidget);
+    expect(find.byKey(const ValueKey('manager-name-3')), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('manager-name-0')),
+      'Nick Coleman',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('manager-email-0')),
+      'nick@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('manager-name-1')),
+      'Jordan Smith',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('manager-name-2')),
+      'Taylor Reed',
+    );
+    await tester.ensureVisible(find.text('ADD TO LEAGUE'));
+    await tester.tap(find.text('ADD TO LEAGUE'));
+    await tester.pumpAndSettle();
+
+    final managers = storage.loadConfig()!.participants;
+    expect(managers, hasLength(3));
+    expect(managers.first.name, 'Nick Coleman');
+    expect(managers.first.initials, 'NC');
+    expect(managers.first.email, 'nick@example.com');
+    expect(managers[1].initials, 'JS');
+    expect(managers.last.initials, 'TR');
+  });
+
+  testWidgets(
+    'handicap control appears above managers and makes impact clear',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final storage = await _storageWithManagers();
+      await tester.pumpWidget(_setupHarness(storage));
+      await tester.pumpAndSettle();
+
+      final toggle = find.text('⚖ HANDICAP ODDS');
+      await _dragUntilTextVisible(tester, '⚖ HANDICAP ODDS');
+      expect(toggle, findsOneWidget);
+      expect(
+        tester.getTopLeft(toggle).dy,
+        lessThan(tester.getTopLeft(find.text('Manager 1')).dy),
+      );
+      await tester.tap(find.byType(Switch).first);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('ON · Each manager now has an odds control below.'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('weight-slider-p1')), findsOneWidget);
+    },
+  );
+
+  test('CSV parser supports headers, optional email, quotes, and CRLF', () {
+    final managers = parseManagerCsv(
+      'email,name\r\nnick@example.com,"Coleman, Nick"\r\n,Jordan Smith\r\n',
+    );
+    expect(managers, [
+      (name: 'Coleman, Nick', email: 'nick@example.com'),
+      (name: 'Jordan Smith', email: null),
+    ]);
   });
 
   testWidgets('start shows a confirmation sheet before navigating', (
@@ -168,10 +257,7 @@ void main() {
     final storage = await _storageWithManagers(mode: DraftMode.lottery);
     await tester.pumpWidget(_setupHarness(storage));
     await tester.pumpAndSettle();
-    // The base setup screen has known 320px-wide layout overflows that are
-    // tracked separately; drain them so the assertions below only cover the
-    // bottom sheets.
-    tester.takeException();
+    expect(tester.takeException(), isNull);
 
     // Pre-draft confirmation sheet.
     await tester.tap(find.text('START THE DRAW 🎱'));
@@ -194,10 +280,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    // Commissioner sheet. Scrolling lays out more of the base screen, so
-    // drain any base-screen overflows again before asserting on the sheet.
+    // Commissioner sheet. Scrolling lays out more of the base screen, so keep
+    // the base-screen layout assertion strict before opening the sheet.
     await _dragUntilHitTestable(tester, find.text('🔒 COMMISH'), maxDrags: 30);
-    tester.takeException();
+    expect(tester.takeException(), isNull);
     await tester.tap(find.text('🔒 COMMISH'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
@@ -244,7 +330,7 @@ Future<StorageService> _storageWithManagers({
           Participant(
             id: 'p${i + 1}',
             name: 'Manager ${i + 1}',
-            number: kJerseyNumbers[i % kJerseyNumbers.length],
+            initials: Participant.initialsForName('Manager ${i + 1}'),
             colorValue: kJerseyPalette[i % kJerseyPalette.length],
           ),
       ],

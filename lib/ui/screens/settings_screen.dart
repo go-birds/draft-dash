@@ -34,9 +34,31 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
                   children: [
-                    _swatch(t.tokens.turf, t.tokens.gold),
+                    _swatch(
+                      t.tokens.turf,
+                      t.tokens.gold,
+                      t.tokens.sport == SportPresentation.football
+                          ? Icons.sports_football
+                          : Icons.sports_basketball,
+                    ),
                     const SizedBox(width: 14),
-                    Expanded(child: Text(t.name, style: tk.body)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(t.name, style: tk.body),
+                          Text(
+                            t.tokens.sport == SportPresentation.football
+                                ? 'Gridiron turf · football runners'
+                                : 'Hardwood court · basketball runners',
+                            style: tk.body.copyWith(
+                              fontSize: 11,
+                              color: tk.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Icon(
                       activeTheme.id == t.id
                           ? Icons.radio_button_checked
@@ -112,12 +134,14 @@ class SettingsScreen extends ConsumerWidget {
     child: Text(s, style: tk.label.copyWith(color: tk.gold)),
   );
 
-  Widget _swatch(Color a, Color b) => Container(
+  Widget _swatch(Color a, Color b, IconData icon) => Container(
     width: 34,
     height: 34,
+    alignment: Alignment.center,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(8),
       gradient: LinearGradient(colors: [a, b]),
     ),
+    child: Icon(icon, color: Colors.white, size: 19),
   );
 }

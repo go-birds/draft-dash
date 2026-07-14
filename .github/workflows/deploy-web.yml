@@ -1,0 +1,76 @@
+name: Deploy web
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: deploy-web-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Production is intentionally a manual, main-branch-only operation. The
+    # Pages project must not also have Cloudflare's Git build integration.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: greenbean-studio
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Require the main branch
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Production web deploys must be dispatched from main." >&2
+            exit 1
+          fi
+
+      - name: Verify Cloudflare configuration
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ secrets.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_PAGES_PROJECT; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing required greenbean-studio environment secret: $name" >&2
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.9
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build root-host web bundle
+        run: ./tool/build_web.sh
+
+      - name: Verify deploy bundle
+        shell: bash
+        run: |
+          test -s build/web/main.dart.js
+          grep -Fq '<base href="/">' build/web/index.html
+          grep -Fxq '/* /index.html 200' build/web/_redirects
+
+      - name: Deploy prebuilt bundle to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build/web --project-name=${{ secrets.CLOUDFLARE_PAGES_PROJECT }} --branch=main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

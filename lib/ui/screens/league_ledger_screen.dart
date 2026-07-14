@@ -343,7 +343,7 @@ class _LedgerEntrySheetState extends ConsumerState<_LedgerEntrySheet> {
                         children: [
                           JerseyChip(
                             color: Color(p.colorValue),
-                            number: p.number,
+                            number: p.initials,
                             size: 28,
                           ),
                           const SizedBox(width: 10),

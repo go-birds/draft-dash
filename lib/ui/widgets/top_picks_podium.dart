@@ -95,7 +95,7 @@ class _PodiumSpot extends StatelessWidget {
       children: [
         JerseyChip(
           color: Color(participant.colorValue),
-          number: participant.number,
+          number: participant.initials,
           size: isWinner ? 48 : 40,
           highlight: isWinner,
         ),

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../navigation/app_router.dart';
 import '../state/providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/buttons.dart';
-import 'history_screen.dart';
-import 'league_ledger_screen.dart';
-import 'settings_screen.dart';
-import 'setup_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -19,18 +16,14 @@ class HomeScreen extends ConsumerWidget {
     final league = ref.watch(leagueNameProvider);
     final hasLeague = cfg.participants.isNotEmpty;
 
-    void open(Widget screen) => Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => screen));
-
     void startNewDraft() {
       if (hasLeague) {
         ref.read(draftConfigProvider.notifier).prepareNewDraft();
       }
-      open(const SetupScreen());
+      Navigator.of(context).pushNamed(AppRoutes.setup);
     }
 
-    void editSavedLeague() => open(const SetupScreen());
+    void editSavedLeague() => Navigator.of(context).pushNamed(AppRoutes.setup);
 
     return Scaffold(
       backgroundColor: tk.background,
@@ -102,7 +95,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 18),
                     _SectionCard(
-                      title: 'PRIMARY ACTION',
+                      title: 'DRAFT',
                       icon: Icons.play_arrow_rounded,
                       children: [
                         Text(
@@ -226,7 +219,8 @@ class HomeScreen extends ConsumerWidget {
                         GhostButton(
                           'OPEN LEAGUE LEDGER · ${cfg.ledgerEntries.length} ENTRIES',
                           icon: Icons.receipt_long_rounded,
-                          onPressed: () => open(const LeagueLedgerScreen()),
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed(AppRoutes.ledger),
                         ),
                       ],
                     ),
@@ -243,7 +237,9 @@ class HomeScreen extends ConsumerWidget {
                         GhostButton(
                           'OPEN HISTORY',
                           icon: Icons.history_rounded,
-                          onPressed: () => open(const HistoryScreen()),
+                          onPressed: () => Navigator.of(
+                            context,
+                          ).pushNamed(AppRoutes.history),
                         ),
                       ],
                     ),
@@ -260,7 +256,9 @@ class HomeScreen extends ConsumerWidget {
                         GhostButton(
                           'OPEN SETTINGS',
                           icon: Icons.settings_rounded,
-                          onPressed: () => open(const SettingsScreen()),
+                          onPressed: () => Navigator.of(
+                            context,
+                          ).pushNamed(AppRoutes.settings),
                         ),
                       ],
                     ),

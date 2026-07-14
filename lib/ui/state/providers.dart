@@ -13,6 +13,7 @@ import '../../domain/draft/league_ledger.dart';
 import '../../domain/draft/league_stats.dart';
 import '../../domain/draft/draft_settings.dart';
 import '../../domain/draft/participant.dart';
+import '../../domain/draft/race_speed.dart';
 import '../../storage/storage_service.dart';
 import '../theme/app_tokens.dart';
 import '../theme/themes.dart';
@@ -98,6 +99,11 @@ class SettingsController extends Notifier<DraftSettings> {
     state = state.copyWith(defaultMode: m);
     _save();
   }
+
+  void setRaceSpeed(RaceSpeed speed) {
+    state = state.copyWith(raceSpeed: speed);
+    _save();
+  }
 }
 
 final settingsProvider = NotifierProvider<SettingsController, DraftSettings>(
@@ -148,10 +154,35 @@ class DraftConfigController extends Notifier<DraftConfig> {
     final p = Participant(
       id: _newId(),
       name: name.trim().isEmpty ? 'Manager ${idx + 1}' : name.trim(),
-      number: kJerseyNumbers[idx % kJerseyNumbers.length],
+      initials: Participant.initialsForName(
+        name.trim().isEmpty ? 'Manager ${idx + 1}' : name.trim(),
+      ),
       colorValue: kJerseyPalette[idx % kJerseyPalette.length],
     );
     _set(state.copyWith(participants: [..._ps, p]));
+  }
+
+  /// Adds a prepared roster in one state/storage update.
+  void addManagers(List<({String name, String? email})> managers) {
+    if (managers.isEmpty || _ps.length >= maxManagers) return;
+    final additions = managers.take(maxManagers - _ps.length).toList();
+    final created = <Participant>[];
+    for (var i = 0; i < additions.length; i++) {
+      final entry = additions[i];
+      final name = entry.name.trim();
+      final email = entry.email?.trim();
+      final index = _ps.length + i;
+      created.add(
+        Participant(
+          id: _newId(),
+          name: name,
+          initials: Participant.initialsForName(name),
+          email: email == null || email.isEmpty ? null : email,
+          colorValue: kJerseyPalette[index % kJerseyPalette.length],
+        ),
+      );
+    }
+    _set(state.copyWith(participants: [..._ps, ...created]));
   }
 
   void removeManager(String id) {
@@ -190,7 +221,7 @@ class DraftConfigController extends Notifier<DraftConfig> {
     final p = _tryById(id);
     if (p == null) return;
     // Weights must stay > 0: the engine samples with pow(u, 1/w).
-    updateManager(p.copyWith(weight: w.clamp(0.1, 10.0)));
+    updateManager(p.copyWith(weight: w.clamp(0.2, 5.0)));
   }
 
   void setBudget(String id, int b) {
@@ -310,9 +341,35 @@ class DraftController extends Notifier<DraftResult?> {
   void setResult(DraftResult r) => state = r;
 
   /// Post-draw commissioner override.
-  void editOrder(List<String> order) {
+  void editOrder(List<String> order, {DateTime? editedAt}) {
     final s = state;
-    if (s != null) state = s.copyWith(order: order);
+    if (s == null || _sameOrder(s.order, order)) return;
+    final metadata =
+        s.proofMetadata ??
+        DraftProofMetadata.fromConfig(
+          ref.read(draftConfigProvider),
+          executedAt: s.createdAt,
+          seed: s.seed,
+        );
+    final edit = DraftOrderEdit(
+      editedAt: (editedAt ?? DateTime.now()).toUtc(),
+      previousOrder: s.order,
+      updatedOrder: order,
+    );
+    state = s.copyWith(
+      order: List<String>.unmodifiable(order),
+      proofMetadata: metadata.copyWith(
+        orderEdits: [...metadata.orderEdits, edit],
+      ),
+    );
+  }
+
+  bool _sameOrder(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   void clear() => state = null;

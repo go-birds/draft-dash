@@ -2,11 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:progenitor_core/progenitor_core.dart';
 import 'app_tokens.dart';
 
-/// Stadium-realism themes. All dark-chrome (the field is green; the UI panels
-/// are broadcast scoreboards). [stadium] is the default; [night] is a cooler,
-/// deeper "night game under the lights" variant.
+/// Two deliberately different sports broadcasts: football turf and a bright
+/// basketball hardwood arena.
 abstract class AppThemes {
-  static List<AppTheme<DraftTokens>> get all => [stadium, night];
+  static List<AppTheme<DraftTokens>> get all => [stadium, hardwood];
 
   static AppTheme<DraftTokens> get defaultTheme => stadium;
 
@@ -66,9 +65,10 @@ abstract class AppThemes {
   // ─── Stadium (default) ─────────────────────────────────────────────────
   static final stadium = AppTheme<DraftTokens>(
     id: 'stadium',
-    name: 'Stadium',
+    name: 'Football Sunday',
     isDark: true,
     tokens: DraftTokens(
+      sport: SportPresentation.football,
       background: const Color(0xFF0B0F14),
       surface: const Color(0xFF141A22),
       surfaceElevated: const Color(0xFF1B232E),
@@ -98,38 +98,39 @@ abstract class AppThemes {
     ),
   );
 
-  // ─── Night Game ────────────────────────────────────────────────────────
-  static final night = AppTheme<DraftTokens>(
-    id: 'night',
-    name: 'Night Game',
-    isDark: true,
+  // ─── Basketball hardwood ───────────────────────────────────────────────
+  static final hardwood = AppTheme<DraftTokens>(
+    id: 'hardwood',
+    name: 'Basketball Hardwood',
+    isDark: false,
     tokens: DraftTokens(
-      background: const Color(0xFF05070C),
-      surface: const Color(0xFF0E1422),
-      surfaceElevated: const Color(0xFF161E30),
-      accent: const Color(0xFF7FB2FF),
-      error: const Color(0xFFFF5A6E),
-      success: const Color(0xFF3DDC84),
-      textPrimary: const Color(0xFFEAF1FB),
-      textMuted: const Color(0xFF8090A8),
-      gridLine: const Color(0xFF22304A),
-      turf: const Color(0xFF1F6E33),
-      turfDark: const Color(0xFF195E2C),
-      yardLine: const Color(0xFFDDE8F2),
-      endZone: const Color(0xFF0C1E3D),
-      endZoneDark: const Color(0xFF08152C),
-      scoreboard: const Color(0xFF080D16),
-      scoreboardLine: const Color(0xFF22304A),
-      gold: const Color(0xFFF5C24B),
-      led: const Color(0xFF3DDC84),
-      whistle: const Color(0xFFFF5A6E),
-      ice: const Color(0xFF9CC4FF),
+      sport: SportPresentation.basketball,
+      background: const Color(0xFFF2E3CA),
+      surface: const Color(0xFFFFF8EC),
+      surfaceElevated: const Color(0xFFFFFDF8),
+      accent: const Color(0xFFC94F18),
+      error: const Color(0xFFB42318),
+      success: const Color(0xFF287A45),
+      textPrimary: const Color(0xFF18233A),
+      textMuted: const Color(0xFF657087),
+      gridLine: const Color(0xFFD8B98B),
+      turf: const Color(0xFFD99B55),
+      turfDark: const Color(0xFFE7AE68),
+      yardLine: const Color(0xFF7A331D),
+      endZone: const Color(0xFF193B70),
+      endZoneDark: const Color(0xFF102A52),
+      scoreboard: const Color(0xFF17213A),
+      scoreboardLine: const Color(0xFF3E5276),
+      gold: const Color(0xFFC94F18),
+      led: const Color(0xFF47D16C),
+      whistle: const Color(0xFFB42318),
+      ice: const Color(0xFF255AA5),
       jerseys: _jerseys,
-      displayLarge: _display(const Color(0xFFEAF1FB)),
-      title: _title(const Color(0xFFEAF1FB)),
-      body: _body(const Color(0xFFEAF1FB)),
-      label: _label(const Color(0xFF8090A8)),
-      mono: _mono(const Color(0xFFEAF1FB)),
+      displayLarge: _display(const Color(0xFF18233A)),
+      title: _title(const Color(0xFF18233A)),
+      body: _body(const Color(0xFF18233A)),
+      label: _label(const Color(0xFF657087)),
+      mono: _mono(const Color(0xFF18233A)),
     ),
   );
 }

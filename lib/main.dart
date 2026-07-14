@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:progenitor_core/progenitor_core.dart';
 
 import 'storage/storage_service.dart';
-import 'ui/screens/home_screen.dart';
+import 'ui/navigation/app_router.dart';
 import 'ui/state/providers.dart';
 import 'ui/theme/app_tokens.dart';
 import 'ui/widgets/error_boundary.dart';
@@ -12,6 +13,10 @@ import 'ui/widgets/error_boundary.dart';
 // Inject SENTRY_DSN at build time: --dart-define=SENTRY_DSN=https://...
 // Empty string = Sentry no-ops (safe for debug builds).
 Future<void> main() {
+  // Match the clean URLs served by the web host's SPA fallback. This is a
+  // no-op on Android and iOS.
+  usePathUrlStrategy();
+
   // Branded fallback instead of the grey error widget in release builds;
   // debug keeps Flutter's default red diagnostics. This only changes
   // rendering — FlutterError.onError (Sentry reporting, wired by
@@ -77,7 +82,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         title: 'Draft Dash',
         debugShowCheckedModeBanner: false,
         theme: _materialTheme(theme),
-        home: const HomeScreen(),
+        onGenerateRoute: AppRouter.onGenerateRoute,
+        onUnknownRoute: AppRouter.onUnknownRoute,
       ),
     );
   }
